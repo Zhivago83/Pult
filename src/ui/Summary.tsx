@@ -3,6 +3,7 @@ import { useEngine } from '../state/engine'
 import { buildSummary } from '../core/derive'
 import { Thermometer } from './Thermometer'
 import { ItemRow } from './ItemRow'
+import { DayNote } from './DayNote'
 import { useNow } from './useNow'
 
 /**
@@ -18,6 +19,7 @@ export function Summary({ onOpen }: { onOpen: (id: string) => void }) {
 
   return (
     <>
+      <DayNote />
       <Thermometer t={summary.thermometer} />
 
       {isEmpty ? (

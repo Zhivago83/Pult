@@ -138,6 +138,32 @@ button {
   color: var(--red);
 }
 
+/* ── Заметка дня ────────────────────────────────────────── */
+.daynote {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: none;
+  border: none;
+  padding: 0 0 2px;
+  margin-bottom: 18px;
+  font-family: var(--font-text);
+  font-size: 16.5px;
+  line-height: 1.35;
+  color: var(--ink);
+  word-break: break-word;
+}
+.daynote--empty {
+  color: var(--muted);
+}
+.daynote__input {
+  border-bottom: 1px solid var(--ink);
+  outline: none;
+}
+.daynote__input::placeholder {
+  color: var(--muted);
+}
+
 /* ── Термометр дня ──────────────────────────────────────── */
 .thermo {
   margin-bottom: 26px;
