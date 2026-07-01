@@ -8,6 +8,7 @@ import { Capture } from './ui/Capture'
 import { Detail } from './ui/Detail'
 import { PersonCard } from './ui/PersonCard'
 import { ProjectCard } from './ui/ProjectCard'
+import { Archive } from './ui/Archive'
 import { Trash } from './ui/Trash'
 import { UndoToast } from './ui/UndoToast'
 
@@ -19,6 +20,7 @@ function Shell() {
   const [screen, setScreen] = useState<Screen>('summary')
   const [showCapture, setShowCapture] = useState(false)
   const [showTrash, setShowTrash] = useState(false)
+  const [showArchive, setShowArchive] = useState(false)
   const [openId, setOpenId] = useState<string | null>(null)
   const [openPerson, setOpenPerson] = useState<string | null>(null)
   const [openProject, setOpenProject] = useState<string | null>(null)
@@ -35,6 +37,9 @@ function Shell() {
       <header className="topbar">
         <div className="topbar__title">Пульт руководителя</div>
         <div className="topbar__actions">
+          <button className="linkbtn" onClick={() => setShowArchive(true)}>
+            Архив
+          </button>
           <button className="linkbtn" onClick={() => setShowTrash(true)}>
             Корзина{trashed.length ? ` · ${trashed.length}` : ''}
           </button>
@@ -90,6 +95,7 @@ function Shell() {
           onClose={() => setOpenProject(null)}
         />
       )}
+      {showArchive && <Archive onOpenItem={setOpenId} onClose={() => setShowArchive(false)} />}
       {openId && <Detail id={openId} onClose={() => setOpenId(null)} />}
       {showTrash && <Trash onClose={() => setShowTrash(false)} />}
 

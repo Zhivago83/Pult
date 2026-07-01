@@ -51,6 +51,8 @@ export interface Engine {
   ready: boolean
   items: Item[]
   trashed: Item[]
+  /** Выполненные (закрытые) пункты — для архива. */
+  done: Item[]
   /** Весь журнал операций (для истории пункта). */
   ops: Op[]
   /** Люди с ролями (команда/исполнитель). */
@@ -64,6 +66,8 @@ export interface Engine {
   close(id: string): void
   trash(id: string): void
   restore(id: string): void
+  /** Вернуть выполненный пункт в работу. */
+  reopen(id: string): void
   /** Удалить пункт из корзины навсегда (обратимо, пока висит «Отменить»). */
   purge(id: string): void
   /** Очистить всю корзину (обратимо, пока висит «Отменить»). */
@@ -255,6 +259,21 @@ export function EngineProvider({
       updatedAt: t,
     }
     void commit('restore', before, after)
+  }
+
+  /** Вернуть выполненный пункт в работу. */
+  function reopen(id: string) {
+    const before = items.find((it) => it.id === id)
+    if (!before || before.status !== 'done') return
+    const t = now()
+    const after: Item = {
+      ...before,
+      status: 'open',
+      closedAt: undefined,
+      graceUntil: undefined,
+      updatedAt: t,
+    }
+    void commit('reopen', before, after)
   }
 
   /** Удалить пункт из корзины навсегда (обратимо через «Отменить»). */
@@ -452,6 +471,7 @@ export function EngineProvider({
   }
 
   const trashed = useMemo(() => items.filter((it) => it.status === 'trashed'), [items])
+  const done = useMemo(() => items.filter((it) => it.status === 'done'), [items])
   const active = useMemo(() => items.filter((it) => it.status !== 'trashed'), [items])
   // Заметка показывается, только если она относится к сегодняшнему дню.
   const dayNote = note && note.day === tsToDateInput(now()) ? note.text : ''
@@ -460,6 +480,7 @@ export function EngineProvider({
     ready,
     items: active,
     trashed,
+    done,
     ops,
     people,
     dayNote,
@@ -469,6 +490,7 @@ export function EngineProvider({
     close,
     trash,
     restore,
+    reopen,
     purge,
     clearTrash,
     edit,
