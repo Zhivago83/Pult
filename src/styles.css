@@ -1,0 +1,416 @@
+/* ─────────────────────────────────────────────────────────────
+   ДИЗАЙН: «графит на бумаге»
+   Почти монохром. Цвет (красный) — только у «горящего».
+   Данные — JetBrains Mono, текст — Golos Text.
+   Структура на воздухе и тонких линиях; без рамок и теней.
+   ───────────────────────────────────────────────────────────── */
+
+/* Светлая тема «Бумага» (по умолчанию) */
+:root {
+  --paper: #f6f5f2;
+  --ink: #23211d;
+  --muted: #8b877f;
+  --hairline: #e4e1da;
+  --ring: #bdb9b0;
+  --red: #cf3a2c;
+  --accent-soft: #efece6;
+
+  --font-text: 'Golos Text', system-ui, -apple-system, sans-serif;
+  --font-data: 'JetBrains Mono', ui-monospace, 'SF Mono', monospace;
+
+  --gap: 16px;
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+
+  color-scheme: light;
+}
+
+/* Тёмная тема «Консоль» */
+[data-theme='console'] {
+  --paper: #161615;
+  --ink: #e9e7e2;
+  --muted: #7d7a74;
+  --hairline: #2a2926;
+  --ring: #48453f;
+  --red: #ff5849;
+  --accent-soft: #201f1d;
+
+  color-scheme: dark;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-text);
+  font-size: 16px;
+  line-height: 1.4;
+  -webkit-font-smoothing: antialiased;
+  -webkit-tap-highlight-color: transparent;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+button {
+  font-family: inherit;
+  color: inherit;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+}
+
+.data {
+  font-family: var(--font-data);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Каркас страницы ────────────────────────────────────── */
+.app {
+  max-width: 620px;
+  margin: 0 auto;
+  min-height: 100%;
+  padding: calc(var(--safe-top) + 20px) 22px calc(var(--safe-bottom) + 120px);
+  display: flex;
+  flex-direction: column;
+}
+
+.topbar {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+
+.topbar__title {
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.topbar__actions {
+  display: flex;
+  gap: 18px;
+  align-items: center;
+}
+
+.linkbtn {
+  font-size: 13px;
+  color: var(--muted);
+  letter-spacing: 0.01em;
+}
+.linkbtn:hover {
+  color: var(--ink);
+}
+
+/* ── Термометр дня ──────────────────────────────────────── */
+.thermo {
+  margin-bottom: 26px;
+}
+
+.thermo__bar {
+  height: 3px;
+  width: 100%;
+  background: var(--hairline);
+  border-radius: 2px;
+  overflow: hidden;
+  display: flex;
+}
+
+.thermo__fill--red {
+  background: var(--red);
+  height: 100%;
+}
+.thermo__fill--ink {
+  background: var(--ring);
+  height: 100%;
+}
+
+.thermo__line {
+  margin-top: 10px;
+  font-size: 13px;
+  color: var(--muted);
+  letter-spacing: 0.01em;
+}
+.thermo__line .hot {
+  color: var(--red);
+}
+
+/* ── Секции ─────────────────────────────────────────────── */
+.section {
+  margin-bottom: 26px;
+}
+
+.section__head {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--hairline);
+  margin-bottom: 4px;
+}
+.section__head--hot {
+  color: var(--red);
+}
+
+/* ── Строка пункта ──────────────────────────────────────── */
+.row {
+  display: flex;
+  align-items: flex-start;
+  gap: 13px;
+  padding: 13px 0;
+  border-bottom: 1px solid var(--hairline);
+}
+
+.ring {
+  flex: none;
+  width: 20px;
+  height: 20px;
+  margin-top: 1px;
+  border-radius: 50%;
+  border: 1.6px solid var(--ring);
+  background: transparent;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+.ring--hot {
+  border-color: var(--red);
+}
+.ring:active {
+  background: var(--accent-soft);
+}
+.ring--done {
+  border-color: var(--muted);
+  background: var(--muted);
+}
+
+.row__body {
+  flex: 1;
+  min-width: 0;
+}
+
+.row__title {
+  font-size: 15.5px;
+  color: var(--ink);
+  word-break: break-word;
+}
+.row--closing .row__title {
+  text-decoration: line-through;
+  color: var(--muted);
+}
+
+.row__meta {
+  margin-top: 3px;
+  font-size: 12.5px;
+  color: var(--muted);
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+.row__who::before {
+  content: '← ';
+  color: var(--muted);
+}
+.row__due {
+  color: var(--muted);
+}
+.row__due--hot {
+  color: var(--red);
+}
+
+.row__trash {
+  flex: none;
+  font-size: 12px;
+  color: var(--muted);
+  opacity: 0;
+  transition: opacity 0.15s ease;
+  align-self: center;
+}
+.row:hover .row__trash {
+  opacity: 1;
+}
+/* На тач-устройствах наведения нет — показываем всегда приглушённо. */
+@media (hover: none) {
+  .row__trash {
+    opacity: 0.6;
+  }
+}
+
+/* ── Спокойный пустой экран ─────────────────────────────── */
+.empty {
+  margin-top: 22vh;
+  text-align: center;
+  color: var(--muted);
+  font-size: 15px;
+  letter-spacing: 0.01em;
+}
+.empty__sub {
+  margin-top: 8px;
+  font-size: 13px;
+  opacity: 0.8;
+}
+
+/* ── Кнопка захвата (+) ─────────────────────────────────── */
+.fab {
+  position: fixed;
+  right: max(22px, env(safe-area-inset-right, 0px));
+  bottom: calc(var(--safe-bottom) + 26px);
+  width: 54px;
+  height: 54px;
+  border-radius: 50%;
+  background: var(--ink);
+  color: var(--paper);
+  font-size: 28px;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: none;
+}
+.fab:active {
+  transform: scale(0.95);
+}
+
+/* ── Плашка Undo ────────────────────────────────────────── */
+.toast {
+  position: fixed;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: calc(var(--safe-bottom) + 26px);
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  background: var(--ink);
+  color: var(--paper);
+  padding: 11px 16px;
+  border-radius: 10px;
+  font-size: 14px;
+  max-width: calc(100% - 44px);
+}
+.toast__label {
+  white-space: nowrap;
+}
+.toast__undo {
+  color: var(--paper);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+/* ── Модальное окно захвата / корзины ───────────────────── */
+.sheet-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.28);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  z-index: 20;
+}
+.sheet {
+  background: var(--paper);
+  width: 100%;
+  max-width: 620px;
+  border-top-left-radius: 16px;
+  border-top-right-radius: 16px;
+  padding: 22px 22px calc(var(--safe-bottom) + 22px);
+  max-height: 88vh;
+  overflow-y: auto;
+}
+.sheet__title {
+  font-size: 15px;
+  font-weight: 600;
+  margin-bottom: 18px;
+}
+
+.segmented {
+  display: flex;
+  gap: 0;
+  border: 1px solid var(--hairline);
+  border-radius: 9px;
+  overflow: hidden;
+  margin-bottom: 16px;
+}
+.segmented button {
+  flex: 1;
+  padding: 10px;
+  font-size: 14px;
+  color: var(--muted);
+}
+.segmented button.is-active {
+  background: var(--ink);
+  color: var(--paper);
+}
+
+.field {
+  margin-bottom: 14px;
+}
+.field label {
+  display: block;
+  font-size: 12px;
+  color: var(--muted);
+  margin-bottom: 6px;
+  letter-spacing: 0.02em;
+}
+.field input {
+  width: 100%;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--hairline);
+  padding: 8px 0;
+  font-size: 16px;
+  color: var(--ink);
+  font-family: inherit;
+}
+.field input:focus {
+  outline: none;
+  border-bottom-color: var(--ink);
+}
+.field input.data {
+  font-family: var(--font-data);
+}
+
+.sheet__row {
+  display: flex;
+  gap: 12px;
+  margin-top: 8px;
+}
+.btn {
+  flex: 1;
+  padding: 13px;
+  border-radius: 9px;
+  font-size: 15px;
+  text-align: center;
+}
+.btn--primary {
+  background: var(--ink);
+  color: var(--paper);
+}
+.btn--primary:disabled {
+  opacity: 0.4;
+}
+.btn--ghost {
+  color: var(--muted);
+  border: 1px solid var(--hairline);
+}
+
+.trash-list .row__trash {
+  opacity: 1;
+  color: var(--ink);
+}
+.trash-empty {
+  color: var(--muted);
+  font-size: 14px;
+  padding: 20px 0;
+  text-align: center;
+}

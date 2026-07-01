@@ -1,0 +1,23 @@
+# зависимости
+node_modules
+
+# сборка
+dist
+dist-ssr
+*.local
+
+# служебные файлы TypeScript (генерируются из .ts)
+*.tsbuildinfo
+vite.config.js
+vite.config.d.ts
+
+# логи
+logs
+*.log
+npm-debug.log*
+
+# редакторы / ОС
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
