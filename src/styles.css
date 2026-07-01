@@ -479,6 +479,26 @@ button {
   padding: 20px 0;
   text-align: center;
 }
+.trash-actions {
+  flex: none;
+  display: flex;
+  gap: 14px;
+  align-self: center;
+}
+.linkbtn--danger {
+  color: var(--red);
+}
+.linkbtn--danger:hover {
+  color: var(--red);
+}
+.trash-note {
+  color: var(--muted);
+  font-size: 12px;
+  padding: 12px 0 4px;
+}
+.btn--danger {
+  color: var(--red);
+}
 
 /* ─────────────────────────────────────────────────────────────
    КАРТОЧКА ПУНКТА (Detail)

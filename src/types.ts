@@ -71,6 +71,8 @@ export type OpType =
   | 'comment' // комментарий в истории пункта
   | 'remind' // отметка «напомнил» (для «жду от кого-то»)
   | 'setRole' // смена роли человека (команда/исполнитель)
+  | 'purge' // окончательное удаление одного пункта
+  | 'clearTrash' // очистка всей корзины
 
 /**
  * Op — запись журнала операций.
@@ -95,6 +97,8 @@ export interface Op {
   personBefore?: Person | null
   /** Снимок человека после операции (для type === 'setRole'). */
   personAfter?: Person | null
+  /** Набор пунктов для групповой операции (для type === 'clearTrash'). */
+  items?: Item[]
   /** Была ли операция уже отменена. */
   undone?: boolean
 }
