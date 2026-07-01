@@ -19,7 +19,7 @@ import {
 import type { Item, Kind, Op, OpType, Person, Role } from '../types'
 import { idbStore, type Store } from '../store/store'
 import { newId } from '../core/id'
-import { GRACE_MS, REMIND_SNOOZE_MS } from '../core/constants'
+import { GRACE_MS, REMIND_SNOOZE_MS, PURGE_AFTER_MS } from '../core/constants'
 import { seedItems, seedPeople } from '../core/seed'
 
 /** Сколько миллисекунд висит плашка «Отменить». */
@@ -56,6 +56,10 @@ export interface Engine {
   close(id: string): void
   trash(id: string): void
   restore(id: string): void
+  /** Удалить пункт из корзины навсегда (обратимо, пока висит «Отменить»). */
+  purge(id: string): void
+  /** Очистить всю корзину (обратимо, пока висит «Отменить»). */
+  clearTrash(): void
   /** Поправить поля пункта (заголовок, владелец, проект, срок). */
   edit(id: string, patch: EditPatch): void
   /** Добавить комментарий в историю пункта. */
@@ -81,6 +85,8 @@ const OP_LABELS: Record<OpType, string> = {
   comment: 'Комментарий добавлен',
   remind: 'Отмечено: напомнил',
   setRole: 'Роль изменена',
+  purge: 'Удалено навсегда',
+  clearTrash: 'Корзина очищена',
 }
 
 export function EngineProvider({
@@ -107,6 +113,17 @@ export function EngineProvider({
       if (loaded.length === 0) {
         loaded = seedItems(now())
         for (const it of loaded) await store.putItem(it)
+      } else {
+        // Авто-уборка: пункты, пролежавшие в корзине дольше срока, удаляем.
+        const cutoff = now() - PURGE_AFTER_MS
+        const stale = loaded.filter(
+          (it) => it.status === 'trashed' && it.trashedAt != null && it.trashedAt < cutoff,
+        )
+        if (stale.length > 0) {
+          for (const it of stale) await store.removeItem(it.id)
+          const staleIds = new Set(stale.map((it) => it.id))
+          loaded = loaded.filter((it) => !staleIds.has(it.id))
+        }
       }
       let loadedPeople = await store.allPeople()
       if (loadedPeople.length === 0) {
@@ -214,6 +231,37 @@ export function EngineProvider({
     void commit('restore', before, after)
   }
 
+  /** Удалить пункт из корзины навсегда (обратимо через «Отменить»). */
+  function purge(id: string) {
+    const before = items.find((it) => it.id === id)
+    if (!before || before.status !== 'trashed') return
+    void commit('purge', before, null)
+  }
+
+  /** Очистить всю корзину одним действием (обратимо через «Отменить»). */
+  function clearTrash() {
+    const removed = items.filter((it) => it.status === 'trashed')
+    if (removed.length === 0) return
+    const op: Op = {
+      id: newId(),
+      ts: now(),
+      type: 'clearTrash',
+      itemId: '',
+      before: null,
+      after: null,
+      items: removed,
+    }
+    ;(async () => {
+      for (const it of removed) await store.removeItem(it.id)
+      await store.putOp(op)
+      const ids = new Set(removed.map((it) => it.id))
+      setItems((prev) => prev.filter((it) => !ids.has(it.id)))
+      setOps((prev) => [...prev, op])
+      setPending({ op, label: OP_LABELS.clearTrash })
+      scheduleToastHide()
+    })()
+  }
+
   /**
    * Поправить поля пункта. Пустые строки очищают текст, а передача
    * `dueAt: undefined` / `nextTouchAt: undefined` очищает дату. Наличие
@@ -310,6 +358,11 @@ export function EngineProvider({
         if (op.personBefore) await store.putPerson(op.personBefore)
         else await store.removePerson(op.itemId)
         applyPerson(op.itemId, op.personBefore ?? null)
+      } else if (op.type === 'clearTrash') {
+        // Групповая очистка — возвращаем все удалённые пункты.
+        const restored = op.items ?? []
+        for (const it of restored) await store.putItem(it)
+        setItems((prev) => [...prev, ...restored])
       } else {
         // Операция про пункт — возвращаем снимок «до».
         const { before, after } = op
@@ -344,6 +397,8 @@ export function EngineProvider({
     close,
     trash,
     restore,
+    purge,
+    clearTrash,
     edit,
     addComment,
     markReminded,
