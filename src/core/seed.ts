@@ -23,6 +23,7 @@ export function seedItems(now: number): Item[] {
       id: 'seed-1',
       kind: 'mine',
       title: 'Согласовать бюджет отдела на квартал',
+      project: 'Бюджет',
       dueAt: now - 6 * HOUR, // просрочено → «горит» (красное)
       createdAt: 3 * DAY,
     }),
@@ -31,6 +32,7 @@ export function seedItems(now: number): Item[] {
       kind: 'waiting',
       title: 'Отчёт по продажам за июнь',
       who: 'Марина',
+      project: 'Отчётность',
       dueAt: now + 2 * DAY, // ожидание на подходе → «пора пнуть»
       createdAt: 4 * DAY,
     }),
@@ -38,6 +40,7 @@ export function seedItems(now: number): Item[] {
       id: 'seed-3',
       kind: 'mine',
       title: 'Подготовить план найма на III квартал',
+      project: 'Найм',
       dueAt: now + 5 * DAY, // спокойное «моё»
       createdAt: 1 * DAY,
     }),
@@ -46,14 +49,14 @@ export function seedItems(now: number): Item[] {
       kind: 'waiting',
       title: 'Правки в презентацию для правления',
       who: 'Игорь',
-      // без срока, свежее → спокойное «Ожидания»
+      // без проекта и срока → спокойное «Ожидания»
       createdAt: 4 * HOUR,
     }),
     base({
       id: 'seed-5',
-      kind: 'waiting',
+      kind: 'mine',
       title: 'Смета на ремонт офиса',
-      who: 'Марина',
+      project: 'Ремонт офиса',
       dueAt: now + 6 * DAY,
       createdAt: 2 * DAY,
     }),
@@ -62,6 +65,7 @@ export function seedItems(now: number): Item[] {
       kind: 'waiting',
       title: 'Договор с подрядчиком',
       who: 'Пётр',
+      project: 'Ремонт офиса',
       dueAt: now - 1 * DAY, // просрочено → у Петра «срывал срок» (красное)
       createdAt: 5 * DAY,
     }),
