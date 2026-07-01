@@ -5,7 +5,7 @@ import { formatDateShort, formatDateTime, dateInputToTs, tsToDateInput } from '.
 import { SOON_MS } from '../core/constants'
 import { useNow } from './useNow'
 
-type Field = 'title' | 'who' | 'project' | 'due'
+type Field = 'title' | 'who' | 'project' | 'due' | 'touch'
 
 /**
  * Карточка пункта: заголовок и «пилюли» правятся тапом (только поля
@@ -38,6 +38,7 @@ export function Detail({ id, onClose }: { id: string; onClose: () => void }) {
     else if (field === 'who') setDraft(item.who ?? '')
     else if (field === 'project') setDraft(item.project ?? '')
     else if (field === 'due') setDraft(tsToDateInput(item.dueAt))
+    else if (field === 'touch') setDraft(tsToDateInput(item.nextTouchAt))
   }
 
   function saveEdit() {
@@ -46,6 +47,7 @@ export function Detail({ id, onClose }: { id: string; onClose: () => void }) {
     else if (editing === 'who') edit(id, { who: draft })
     else if (editing === 'project') edit(id, { project: draft })
     else if (editing === 'due') edit(id, { dueAt: dateInputToTs(draft) })
+    else if (editing === 'touch') edit(id, { nextTouchAt: dateInputToTs(draft) })
     setEditing(null)
   }
 
@@ -53,6 +55,7 @@ export function Detail({ id, onClose }: { id: string; onClose: () => void }) {
     if (editing === 'who') edit(id, { who: '' })
     else if (editing === 'project') edit(id, { project: '' })
     else if (editing === 'due') edit(id, { dueAt: undefined })
+    else if (editing === 'touch') edit(id, { nextTouchAt: undefined })
     setEditing(null)
   }
 
@@ -68,6 +71,7 @@ export function Detail({ id, onClose }: { id: string; onClose: () => void }) {
     who: 'Владелец',
     project: 'Проект',
     due: 'Срок',
+    touch: 'Напомнить',
   }
 
   return (
@@ -115,13 +119,21 @@ export function Detail({ id, onClose }: { id: string; onClose: () => void }) {
               {item.dueAt != null ? formatDateShort(item.dueAt) : '—'}
             </span>
           </button>
+          {item.kind === 'waiting' && (
+            <button className="pill" onClick={() => startEdit('touch')}>
+              <span className="pill__key">напомнить</span>
+              <span className="pill__val data">
+                {item.nextTouchAt != null ? formatDateShort(item.nextTouchAt) : '—'}
+              </span>
+            </button>
+          )}
         </div>
 
         {/* Инлайн-редактор выбранного поля */}
         {editing && editing !== 'title' && (
           <div className="editor">
             <label className="editor__label">{fieldLabel[editing]}</label>
-            {editing === 'due' ? (
+            {editing === 'due' || editing === 'touch' ? (
               <input
                 className="editor__input data"
                 type="date"
