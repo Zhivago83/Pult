@@ -10,6 +10,7 @@ import { ProjectCard } from './ui/ProjectCard'
 import { Archive } from './ui/Archive'
 import { Trash } from './ui/Trash'
 import { More } from './ui/More'
+import { Search } from './ui/Search'
 import { UndoToast } from './ui/UndoToast'
 
 type Screen = 'summary' | 'waiting' | 'projects'
@@ -21,6 +22,7 @@ function Shell() {
   const [showTrash, setShowTrash] = useState(false)
   const [showArchive, setShowArchive] = useState(false)
   const [showMore, setShowMore] = useState(false)
+  const [showSearch, setShowSearch] = useState(false)
   const [openId, setOpenId] = useState<string | null>(null)
   const [openPerson, setOpenPerson] = useState<string | null>(null)
   const [openProject, setOpenProject] = useState<string | null>(null)
@@ -37,13 +39,16 @@ function Shell() {
       <header className="topbar">
         <div className="topbar__title">Пульт руководителя</div>
         <div className="topbar__actions">
+          <button className="linkbtn linkbtn--icon" aria-label="Поиск" onClick={() => setShowSearch(true)}>
+            ⌕
+          </button>
           <button className="linkbtn" onClick={() => setShowArchive(true)}>
             Архив
           </button>
           <button className="linkbtn" onClick={() => setShowTrash(true)}>
             Корзина{trashed.length ? ` · ${trashed.length}` : ''}
           </button>
-          <button className="linkbtn" aria-label="Ещё" onClick={() => setShowMore(true)}>
+          <button className="linkbtn linkbtn--icon" aria-label="Ещё" onClick={() => setShowMore(true)}>
             ⋯
           </button>
         </div>
@@ -98,6 +103,7 @@ function Shell() {
       {showArchive && <Archive onOpenItem={setOpenId} onClose={() => setShowArchive(false)} />}
       {openId && <Detail id={openId} onClose={() => setOpenId(null)} />}
       {showTrash && <Trash onClose={() => setShowTrash(false)} />}
+      {showSearch && <Search onOpenItem={setOpenId} onClose={() => setShowSearch(false)} />}
       {showMore && <More onClose={() => setShowMore(false)} />}
 
       <UndoToast />

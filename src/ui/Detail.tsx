@@ -23,9 +23,9 @@ const REPEAT_OPTIONS: Array<{ value: Repeat | undefined; label: string }> = [
  * На телефоне — шторка снизу, на широком экране — панель справа.
  */
 export function Detail({ id, onClose }: { id: string; onClose: () => void }) {
-  const { items, ops, edit, addComment, markReminded, close } = useEngine()
+  const { findItem, ops, edit, addComment, markReminded, close } = useEngine()
   const now = useNow()
-  const item = items.find((it) => it.id === id)
+  const item = findItem(id)
   const timeline = useMemo(() => (item ? buildTimeline(ops, item) : []), [ops, item])
 
   const [editing, setEditing] = useState<Field | null>(null)

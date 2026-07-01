@@ -116,6 +116,10 @@ button {
 .linkbtn:hover {
   color: var(--ink);
 }
+.linkbtn--icon {
+  font-size: 18px;
+  line-height: 1;
+}
 
 /* ── Вкладки: Сводка / Жду ──────────────────────────────── */
 .tabs {
@@ -539,6 +543,43 @@ button {
 .archive-time {
   font-size: 12px;
   color: var(--muted);
+}
+
+/* Поиск */
+button.row {
+  width: 100%;
+  text-align: left;
+  background: none;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+.search__input {
+  flex: 1;
+  min-width: 0;
+  background: none;
+  border: none;
+  font-family: var(--font-text);
+  font-size: 17px;
+  color: var(--ink);
+  padding: 2px 0;
+}
+.search__input:focus {
+  outline: none;
+}
+.search__input::placeholder {
+  color: var(--muted);
+}
+.search__tag {
+  flex: none;
+  align-self: center;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+  white-space: nowrap;
+}
+.search__tag--trashed {
+  text-decoration: line-through;
 }
 
 /* «Ещё»: резервная копия */
