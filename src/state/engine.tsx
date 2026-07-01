@@ -33,6 +33,9 @@ export interface CaptureInput {
   dueAt?: number
 }
 
+/** Что можно поправить в карточке пункта. */
+export type EditPatch = Partial<Pick<Item, 'title' | 'who' | 'project' | 'dueAt'>>
+
 /** Плашка Undo: что именно предлагаем отменить. */
 export interface Pending {
   op: Op
@@ -43,11 +46,19 @@ export interface Engine {
   ready: boolean
   items: Item[]
   trashed: Item[]
+  /** Весь журнал операций (для истории пункта). */
+  ops: Op[]
   pending: Pending | null
   capture(input: CaptureInput): void
   close(id: string): void
   trash(id: string): void
   restore(id: string): void
+  /** Поправить поля пункта (заголовок, владелец, проект, срок). */
+  edit(id: string, patch: EditPatch): void
+  /** Добавить комментарий в историю пункта. */
+  addComment(id: string, text: string): void
+  /** Отметка «напомнил» — запись в историю (для «жду от кого-то»). */
+  markReminded(id: string): void
   undo(): void
   dismissToast(): void
 }
@@ -62,6 +73,8 @@ const OP_LABELS: Record<OpType, string> = {
   trash: 'Пункт удалён',
   restore: 'Пункт восстановлен',
   edit: 'Пункт изменён',
+  comment: 'Комментарий добавлен',
+  remind: 'Отмечено: напомнил',
 }
 
 export function EngineProvider({
@@ -75,6 +88,7 @@ export function EngineProvider({
 }) {
   const [ready, setReady] = useState(false)
   const [items, setItems] = useState<Item[]>([])
+  const [ops, setOps] = useState<Op[]>([])
   const [pending, setPending] = useState<Pending | null>(null)
   const toastTimer = useRef<number | null>(null)
 
@@ -87,8 +101,10 @@ export function EngineProvider({
         loaded = seedItems(now())
         for (const it of loaded) await store.putItem(it)
       }
+      const loadedOps = await store.allOps()
       if (!alive) return
       setItems(loaded)
+      setOps(loadedOps)
       setReady(true)
     })()
     return () => {
@@ -112,13 +128,14 @@ export function EngineProvider({
   }
 
   /** Записать операцию: сохранить пункт + запись журнала + показать Undo. */
-  async function commit(type: OpType, before: Item | null, after: Item | null) {
+  async function commit(type: OpType, before: Item | null, after: Item | null, text?: string) {
     const itemId = (after ?? before)!.id
-    const op: Op = { id: newId(), ts: now(), type, itemId, before, after }
+    const op: Op = { id: newId(), ts: now(), type, itemId, before, after, text }
     if (after) await store.putItem(after)
     else await store.removeItem(itemId)
     await store.putOp(op)
     applySnapshot(itemId, after)
+    setOps((prev) => [...prev, op])
     setPending({ op, label: OP_LABELS[type] })
     scheduleToastHide()
   }
@@ -183,6 +200,46 @@ export function EngineProvider({
     void commit('restore', before, after)
   }
 
+  /** Поправить поля пункта. Пустые строки очищают значение. */
+  function edit(id: string, patch: EditPatch) {
+    const before = items.find((it) => it.id === id)
+    if (!before) return
+    const clean: EditPatch = {}
+    if (patch.title !== undefined) clean.title = patch.title.trim()
+    if (patch.who !== undefined) clean.who = patch.who.trim() || undefined
+    if (patch.project !== undefined) clean.project = patch.project.trim() || undefined
+    if (patch.dueAt !== undefined) clean.dueAt = patch.dueAt
+    // Заголовок не может стать пустым.
+    if (clean.title !== undefined && clean.title === '') delete clean.title
+
+    const after: Item = { ...before, ...clean, updatedAt: now() }
+    // Ничего не поменялось — не засоряем журнал.
+    if (
+      after.title === before.title &&
+      after.who === before.who &&
+      after.project === before.project &&
+      after.dueAt === before.dueAt
+    ) {
+      return
+    }
+    void commit('edit', before, after)
+  }
+
+  /** Добавить комментарий в историю пункта (пункт не меняется). */
+  function addComment(id: string, text: string) {
+    const item = items.find((it) => it.id === id)
+    const trimmed = text.trim()
+    if (!item || !trimmed) return
+    void commit('comment', item, { ...item, updatedAt: now() }, trimmed)
+  }
+
+  /** Отметка «напомнил»: запись в историю (для «жду от кого-то»). */
+  function markReminded(id: string) {
+    const item = items.find((it) => it.id === id)
+    if (!item) return
+    void commit('remind', item, { ...item, updatedAt: now() })
+  }
+
   /** Отменить последнее действие: вернуть снимок «до». */
   function undo() {
     if (!pending) return
@@ -194,6 +251,7 @@ export function EngineProvider({
       const undoneOp: Op = { ...pending.op, undone: true }
       await store.putOp(undoneOp)
       applySnapshot(id, before)
+      setOps((prev) => prev.map((o) => (o.id === undoneOp.id ? undoneOp : o)))
       setPending(null)
       if (toastTimer.current != null) window.clearTimeout(toastTimer.current)
     })()
@@ -211,11 +269,15 @@ export function EngineProvider({
     ready,
     items: active,
     trashed,
+    ops,
     pending,
     capture,
     close,
     trash,
     restore,
+    edit,
+    addComment,
+    markReminded,
     undo,
     dismissToast,
   }

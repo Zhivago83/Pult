@@ -11,11 +11,13 @@ export function ItemRow({
   now,
   onClose,
   onTrash,
+  onOpen,
 }: {
   vi: VisibleItem
   now: number
   onClose: (id: string) => void
   onTrash: (id: string) => void
+  onOpen: (id: string) => void
 }) {
   const { item, closing } = vi
   const hot = item.dueAt != null && item.dueAt <= now + SOON_MS
@@ -28,15 +30,16 @@ export function ItemRow({
         aria-label={closing ? 'Закрывается' : 'Закрыть пункт'}
         onClick={() => !closing && onClose(item.id)}
       />
-      <div className="row__body">
+      <button className="row__body" onClick={() => onOpen(item.id)}>
         <div className="row__title">{item.title}</div>
-        {(item.who || due) && (
+        {(item.who || item.project || due) && (
           <div className="row__meta data">
             {item.who && <span className="row__who">{item.who}</span>}
+            {item.project && <span className="row__project">{item.project}</span>}
             {due && <span className={`row__due${hot ? ' row__due--hot' : ''}`}>{due}</span>}
           </div>
         )}
-      </div>
+      </button>
       <button className="row__trash" aria-label="Удалить" onClick={() => onTrash(item.id)}>
         удалить
       </button>

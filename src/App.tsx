@@ -3,6 +3,7 @@ import { EngineProvider, useEngine } from './state/engine'
 import { useTheme } from './ui/useTheme'
 import { Summary } from './ui/Summary'
 import { Capture } from './ui/Capture'
+import { Detail } from './ui/Detail'
 import { Trash } from './ui/Trash'
 import { UndoToast } from './ui/UndoToast'
 
@@ -11,6 +12,7 @@ function Shell() {
   const { theme, toggle } = useTheme()
   const [showCapture, setShowCapture] = useState(false)
   const [showTrash, setShowTrash] = useState(false)
+  const [openId, setOpenId] = useState<string | null>(null)
 
   if (!ready) return <div className="app" />
 
@@ -28,13 +30,14 @@ function Shell() {
         </div>
       </header>
 
-      <Summary />
+      <Summary onOpen={setOpenId} />
 
       <button className="fab" aria-label="Добавить пункт" onClick={() => setShowCapture(true)}>
         +
       </button>
 
       {showCapture && <Capture onClose={() => setShowCapture(false)} />}
+      {openId && <Detail id={openId} onClose={() => setOpenId(null)} />}
       {showTrash && <Trash onClose={() => setShowTrash(false)} />}
 
       <UndoToast />

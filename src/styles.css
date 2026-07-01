@@ -196,6 +196,17 @@ button {
 .row__body {
   flex: 1;
   min-width: 0;
+  /* Кнопка, но выглядит как обычный текстовый блок (тап открывает карточку). */
+  text-align: left;
+  display: block;
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+  color: inherit;
+}
+.row__body:active .row__title {
+  color: var(--muted);
 }
 
 .row__title {
@@ -218,6 +229,10 @@ button {
 }
 .row__who::before {
   content: '← ';
+  color: var(--muted);
+}
+.row__project::before {
+  content: '# ';
   color: var(--muted);
 }
 .row__due {
@@ -295,6 +310,12 @@ button {
   border-radius: 10px;
   font-size: 14px;
   max-width: calc(100% - 44px);
+  /* Выше шторок/панелей (z-index: 20), чтобы Undo был доступен и из карточки. */
+  z-index: 40;
+}
+/* Когда открыта шторка/панель — приподнимаем плашку над строкой комментария. */
+.app:has(.sheet-backdrop) .toast {
+  bottom: calc(var(--safe-bottom) + 84px);
 }
 .toast__label {
   white-space: nowrap;
@@ -413,4 +434,227 @@ button {
   font-size: 14px;
   padding: 20px 0;
   text-align: center;
+}
+
+/* ─────────────────────────────────────────────────────────────
+   КАРТОЧКА ПУНКТА (Detail)
+   На телефоне — шторка снизу (тот же .sheet). На широком экране
+   (панель справа) — прижимаем к правому краю во всю высоту.
+   ───────────────────────────────────────────────────────────── */
+@media (min-width: 720px) {
+  .sheet-backdrop:has(.panel) {
+    align-items: stretch;
+    justify-content: flex-end;
+  }
+  .panel {
+    max-width: 420px;
+    height: 100%;
+    max-height: 100%;
+    border-radius: 0;
+    border-left: 1px solid var(--hairline);
+    padding: calc(var(--safe-top) + 20px) 24px calc(var(--safe-bottom) + 24px);
+  }
+}
+
+.detail__top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+.badge {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+  border: 1px solid var(--hairline);
+  border-radius: 6px;
+  padding: 3px 8px;
+}
+.detail__close {
+  font-size: 16px;
+  color: var(--muted);
+  padding: 4px 8px;
+}
+.detail__close:hover {
+  color: var(--ink);
+}
+
+.detail__title,
+.detail__titleInput {
+  display: block;
+  width: 100%;
+  text-align: left;
+  font-family: var(--font-text);
+  font-size: 20px;
+  line-height: 1.3;
+  color: var(--ink);
+  background: none;
+  border: none;
+  padding: 0;
+  margin-bottom: 16px;
+}
+.detail__title {
+  word-break: break-word;
+}
+.detail__titleInput {
+  border-bottom: 1px solid var(--ink);
+  padding-bottom: 4px;
+}
+.detail__titleInput:focus {
+  outline: none;
+}
+
+/* Пилюли */
+.pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+.pill {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  border: 1px solid var(--hairline);
+  border-radius: 20px;
+  padding: 6px 12px;
+  font-size: 13px;
+}
+.pill:active {
+  background: var(--accent-soft);
+}
+.pill__key {
+  color: var(--muted);
+  font-size: 11px;
+  letter-spacing: 0.02em;
+}
+.pill__val {
+  color: var(--ink);
+}
+.pill__val--hot {
+  color: var(--red);
+}
+
+/* Инлайн-редактор поля */
+.editor {
+  border-top: 1px solid var(--hairline);
+  padding-top: 14px;
+  margin-bottom: 16px;
+}
+.editor__label {
+  display: block;
+  font-size: 12px;
+  color: var(--muted);
+  margin-bottom: 6px;
+  letter-spacing: 0.02em;
+}
+.editor__input {
+  width: 100%;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--hairline);
+  padding: 8px 0;
+  font-size: 16px;
+  color: var(--ink);
+  font-family: inherit;
+}
+.editor__input:focus {
+  outline: none;
+  border-bottom-color: var(--ink);
+}
+.editor__actions {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-top: 12px;
+}
+.editor__actions .btn--sm {
+  margin-left: auto;
+}
+
+.btn--sm {
+  flex: none;
+  padding: 8px 16px;
+  font-size: 13px;
+  border-radius: 8px;
+}
+
+.detail__action {
+  width: 100%;
+  margin-bottom: 24px;
+}
+.detail__doneNote {
+  color: var(--muted);
+  font-size: 13px;
+  margin-bottom: 24px;
+}
+
+/* История */
+.detail__histHead {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--hairline);
+  margin-bottom: 8px;
+}
+.timeline {
+  margin-bottom: 18px;
+}
+.timeline__empty {
+  color: var(--muted);
+  font-size: 13px;
+  padding: 12px 0;
+}
+.tl {
+  display: flex;
+  gap: 12px;
+  padding: 9px 0;
+  border-bottom: 1px solid var(--hairline);
+}
+.tl__time {
+  flex: none;
+  width: 92px;
+  font-size: 11.5px;
+  color: var(--muted);
+}
+.tl__text {
+  flex: 1;
+  font-size: 14px;
+  color: var(--ink);
+}
+/* Системные записи — приглушённые; комментарий — обычный; напомнил — с акцентом. */
+.tl--system .tl__text {
+  color: var(--muted);
+}
+.tl--remind .tl__text::before {
+  content: '↻ ';
+  color: var(--muted);
+}
+
+/* Строка комментария */
+.commentbar {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  position: sticky;
+  bottom: 0;
+  background: var(--paper);
+  padding-top: 8px;
+}
+.commentbar__input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--hairline);
+  padding: 8px 0;
+  font-size: 16px;
+  color: var(--ink);
+  font-family: inherit;
+}
+.commentbar__input:focus {
+  outline: none;
+  border-bottom-color: var(--ink);
 }
