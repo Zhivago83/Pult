@@ -16,9 +16,10 @@ import {
   useState,
   type ReactNode,
 } from 'react'
-import type { Item, Kind, Op, OpType, Person, Role } from '../types'
+import type { DayNote, Item, Kind, Op, OpType, Person, Role } from '../types'
 import { idbStore, type Store } from '../store/store'
 import { newId } from '../core/id'
+import { tsToDateInput } from '../core/time'
 import { GRACE_MS, REMIND_SNOOZE_MS, PURGE_AFTER_MS } from '../core/constants'
 import { seedItems, seedPeople } from '../core/seed'
 import { spawnNext } from '../core/recur'
@@ -54,6 +55,10 @@ export interface Engine {
   ops: Op[]
   /** Люди с ролями (команда/исполнитель). */
   people: Person[]
+  /** Заметка дня на сегодня (пустая строка — не задана). */
+  dayNote: string
+  /** Изменить заметку дня. */
+  setDayNote(text: string): void
   pending: Pending | null
   capture(input: CaptureInput): void
   close(id: string): void
@@ -90,6 +95,7 @@ const OP_LABELS: Record<OpType, string> = {
   setRole: 'Роль изменена',
   purge: 'Удалено навсегда',
   clearTrash: 'Корзина очищена',
+  setNote: 'Заметка дня изменена',
 }
 
 export function EngineProvider({
@@ -105,6 +111,7 @@ export function EngineProvider({
   const [items, setItems] = useState<Item[]>([])
   const [ops, setOps] = useState<Op[]>([])
   const [people, setPeople] = useState<Person[]>([])
+  const [note, setNote] = useState<DayNote | null>(null)
   const [pending, setPending] = useState<Pending | null>(null)
   const toastTimer = useRef<number | null>(null)
 
@@ -134,10 +141,12 @@ export function EngineProvider({
         for (const p of loadedPeople) await store.putPerson(p)
       }
       const loadedOps = await store.allOps()
+      const loadedNote = await store.getDayNote()
       if (!alive) return
       setItems(loaded)
       setOps(loadedOps)
       setPeople(loadedPeople)
+      setNote(loadedNote ?? null)
       setReady(true)
     })()
     return () => {
@@ -366,6 +375,35 @@ export function EngineProvider({
     })()
   }
 
+  /** Изменить заметку дня (привязана к сегодняшней дате). Отменяется как всё. */
+  function setDayNote(text: string) {
+    const day = tsToDateInput(now())
+    const before = note
+    const trimmed = text.trim()
+    const after: DayNote = { text: trimmed, day }
+    // Эффективно ничего не меняется — не пишем в журнал.
+    const beforeEffective = before && before.day === day ? before.text : ''
+    if (beforeEffective === trimmed) return
+    const op: Op = {
+      id: newId(),
+      ts: now(),
+      type: 'setNote',
+      itemId: '',
+      before: null,
+      after: null,
+      noteBefore: before,
+      noteAfter: after,
+    }
+    ;(async () => {
+      await store.putDayNote(after)
+      await store.putOp(op)
+      setNote(after)
+      setOps((prev) => [...prev, op])
+      setPending({ op, label: OP_LABELS.setNote })
+      scheduleToastHide()
+    })()
+  }
+
   /** Отменить последнее действие: вернуть снимок «до». */
   function undo() {
     if (!pending) return
@@ -382,6 +420,11 @@ export function EngineProvider({
         const restored = op.items ?? []
         for (const it of restored) await store.putItem(it)
         setItems((prev) => [...prev, ...restored])
+      } else if (op.type === 'setNote') {
+        // Заметка дня — возвращаем прежний текст.
+        const back = op.noteBefore ?? { text: '', day: '' }
+        await store.putDayNote(back)
+        setNote(op.noteBefore ?? null)
       } else {
         // Операция про пункт — возвращаем снимок «до».
         const { before, after } = op
@@ -410,6 +453,8 @@ export function EngineProvider({
 
   const trashed = useMemo(() => items.filter((it) => it.status === 'trashed'), [items])
   const active = useMemo(() => items.filter((it) => it.status !== 'trashed'), [items])
+  // Заметка показывается, только если она относится к сегодняшнему дню.
+  const dayNote = note && note.day === tsToDateInput(now()) ? note.text : ''
 
   const engine: Engine = {
     ready,
@@ -417,6 +462,8 @@ export function EngineProvider({
     trashed,
     ops,
     people,
+    dayNote,
+    setDayNote,
     pending,
     capture,
     close,
