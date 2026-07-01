@@ -71,6 +71,14 @@ export function seedItems(now: number): Item[] {
       dueAt: now - 1 * DAY, // просрочено → у Петра «срывал срок» (красное)
       createdAt: 5 * DAY,
     }),
+    base({
+      id: 'seed-7',
+      kind: 'mine',
+      title: 'Планёрка отдела',
+      repeat: 'weekly', // закрыл — следующая появится сама
+      dueAt: now + 1 * DAY,
+      createdAt: 1 * DAY,
+    }),
   ]
 }
 

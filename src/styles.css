@@ -644,6 +644,25 @@ button {
   border-radius: 8px;
 }
 
+/* Варианты повтора — компактные кнопки-«таблетки» */
+.repeat-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.repeat-options button {
+  border: 1px solid var(--hairline);
+  border-radius: 20px;
+  padding: 7px 14px;
+  font-size: 13px;
+  color: var(--muted);
+}
+.repeat-options button.is-active {
+  background: var(--ink);
+  color: var(--paper);
+  border-color: var(--ink);
+}
+
 .detail__action {
   width: 100%;
   margin-bottom: 24px;
