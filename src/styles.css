@@ -1,0 +1,76 @@
+/* ── Темы и базовые стили ──────────────────────────────────────
+   Аскетичный монохром: графит на бумаге. Цвет — только у горящего
+   (красный). Воздух и тонкие линии, без карточек и теней. */
+
+:root {
+  --font-text: 'Golos Text', -apple-system, BlinkMacSystemFont, 'Segoe UI',
+    system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+
+  --grace-ms: 6000ms;
+}
+
+/* Светлая тема «Бумага» */
+:root,
+[data-theme='paper'] {
+  --bg: #f4f1ea;
+  --bg-soft: #efece4;
+  --ink: #26251f;
+  --ink-soft: #6b6a62;
+  --ink-faint: #a6a49a;
+  --line: #d8d4c8;
+  --line-soft: #e6e2d8;
+  --hot: #c62a1a;
+  --hot-soft: #e7bcb4;
+  --ring: #b8b4a8;
+}
+
+/* Тёмная тема «Консоль» */
+[data-theme='console'] {
+  --bg: #16171a;
+  --bg-soft: #1d1e22;
+  --ink: #dcdad2;
+  --ink-soft: #8f8e86;
+  --ink-faint: #5a594f;
+  --line: #2c2d32;
+  --line-soft: #232429;
+  --hot: #ff5a44;
+  --hot-soft: #5a2620;
+  --ring: #45464c;
+}
+
+* {
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-text);
+  font-size: 16px;
+  line-height: 1.45;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  /* Безопасные отступы для «чёлки» айфона/айпада */
+  padding: env(safe-area-inset-top) env(safe-area-inset-right)
+    env(safe-area-inset-bottom) env(safe-area-inset-left);
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+.mono {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+button {
+  font-family: inherit;
+  color: inherit;
+  cursor: pointer;
+}
