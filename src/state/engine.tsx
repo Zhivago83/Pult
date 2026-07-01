@@ -16,11 +16,11 @@ import {
   useState,
   type ReactNode,
 } from 'react'
-import type { Item, Kind, Op, OpType } from '../types'
+import type { Item, Kind, Op, OpType, Person, Role } from '../types'
 import { idbStore, type Store } from '../store/store'
 import { newId } from '../core/id'
 import { GRACE_MS } from '../core/constants'
-import { seedItems } from '../core/seed'
+import { seedItems, seedPeople } from '../core/seed'
 
 /** Сколько миллисекунд висит плашка «Отменить». */
 const TOAST_MS = 7000
@@ -48,6 +48,8 @@ export interface Engine {
   trashed: Item[]
   /** Весь журнал операций (для истории пункта). */
   ops: Op[]
+  /** Люди с ролями (команда/исполнитель). */
+  people: Person[]
   pending: Pending | null
   capture(input: CaptureInput): void
   close(id: string): void
@@ -59,6 +61,8 @@ export interface Engine {
   addComment(id: string, text: string): void
   /** Отметка «напомнил» — запись в историю (для «жду от кого-то»). */
   markReminded(id: string): void
+  /** Сменить роль человека (команда/исполнитель). */
+  setRole(name: string, role: Role): void
   undo(): void
   dismissToast(): void
 }
@@ -75,6 +79,7 @@ const OP_LABELS: Record<OpType, string> = {
   edit: 'Пункт изменён',
   comment: 'Комментарий добавлен',
   remind: 'Отмечено: напомнил',
+  setRole: 'Роль изменена',
 }
 
 export function EngineProvider({
@@ -89,10 +94,11 @@ export function EngineProvider({
   const [ready, setReady] = useState(false)
   const [items, setItems] = useState<Item[]>([])
   const [ops, setOps] = useState<Op[]>([])
+  const [people, setPeople] = useState<Person[]>([])
   const [pending, setPending] = useState<Pending | null>(null)
   const toastTimer = useRef<number | null>(null)
 
-  // Загрузка из хранилища при старте. Если пусто — засеваем демо-пункты.
+  // Загрузка из хранилища при старте. Если пусто — засеваем демо-данные.
   useEffect(() => {
     let alive = true
     ;(async () => {
@@ -101,10 +107,16 @@ export function EngineProvider({
         loaded = seedItems(now())
         for (const it of loaded) await store.putItem(it)
       }
+      let loadedPeople = await store.allPeople()
+      if (loadedPeople.length === 0) {
+        loadedPeople = seedPeople()
+        for (const p of loadedPeople) await store.putPerson(p)
+      }
       const loadedOps = await store.allOps()
       if (!alive) return
       setItems(loaded)
       setOps(loadedOps)
+      setPeople(loadedPeople)
       setReady(true)
     })()
     return () => {
@@ -240,17 +252,59 @@ export function EngineProvider({
     void commit('remind', item, { ...item, updatedAt: now() })
   }
 
+  /** Применить снимок человека к состоянию (заменить/добавить/убрать). */
+  function applyPerson(name: string, snapshot: Person | null) {
+    setPeople((prev) => {
+      const without = prev.filter((p) => p.name !== name)
+      return snapshot ? [...without, snapshot] : without
+    })
+  }
+
+  /** Сменить роль человека. Идёт через журнал, отменяется как и всё. */
+  function setRole(name: string, role: Role) {
+    const before = people.find((p) => p.name === name) ?? null
+    if (before && before.role === role) return
+    const after: Person = { name, role }
+    const op: Op = {
+      id: newId(),
+      ts: now(),
+      type: 'setRole',
+      itemId: name,
+      before: null,
+      after: null,
+      personBefore: before,
+      personAfter: after,
+    }
+    ;(async () => {
+      await store.putPerson(after)
+      await store.putOp(op)
+      applyPerson(name, after)
+      setOps((prev) => [...prev, op])
+      setPending({ op, label: OP_LABELS.setRole })
+      scheduleToastHide()
+    })()
+  }
+
   /** Отменить последнее действие: вернуть снимок «до». */
   function undo() {
     if (!pending) return
-    const { before, after } = pending.op
-    const id = (after ?? before)!.id
+    const op = pending.op
+    const undoneOp: Op = { ...op, undone: true }
     ;(async () => {
-      if (before) await store.putItem(before)
-      else await store.removeItem(id)
-      const undoneOp: Op = { ...pending.op, undone: true }
+      if (op.type === 'setRole') {
+        // Операция про человека — откатываем роль.
+        if (op.personBefore) await store.putPerson(op.personBefore)
+        else await store.removePerson(op.itemId)
+        applyPerson(op.itemId, op.personBefore ?? null)
+      } else {
+        // Операция про пункт — возвращаем снимок «до».
+        const { before, after } = op
+        const id = (after ?? before)!.id
+        if (before) await store.putItem(before)
+        else await store.removeItem(id)
+        applySnapshot(id, before)
+      }
       await store.putOp(undoneOp)
-      applySnapshot(id, before)
       setOps((prev) => prev.map((o) => (o.id === undoneOp.id ? undoneOp : o)))
       setPending(null)
       if (toastTimer.current != null) window.clearTimeout(toastTimer.current)
@@ -270,6 +324,7 @@ export function EngineProvider({
     items: active,
     trashed,
     ops,
+    people,
     pending,
     capture,
     close,
@@ -278,6 +333,7 @@ export function EngineProvider({
     edit,
     addComment,
     markReminded,
+    setRole,
     undo,
     dismissToast,
   }

@@ -112,6 +112,32 @@ button {
   color: var(--ink);
 }
 
+/* ── Вкладки: Сводка / Жду ──────────────────────────────── */
+.tabs {
+  display: flex;
+  gap: 22px;
+  margin-bottom: 22px;
+  border-bottom: 1px solid var(--hairline);
+}
+.tab {
+  font-size: 14px;
+  color: var(--muted);
+  padding: 0 0 10px;
+  margin-bottom: -1px;
+  border-bottom: 1.5px solid transparent;
+  letter-spacing: 0.01em;
+}
+.tab.is-active {
+  color: var(--ink);
+  font-weight: 600;
+  border-bottom-color: var(--ink);
+}
+
+/* Красная пометка (горит / срывал срок) — переиспользуемо. */
+.hot {
+  color: var(--red);
+}
+
 /* ── Термометр дня ──────────────────────────────────────── */
 .thermo {
   margin-bottom: 26px;
@@ -657,4 +683,68 @@ button {
 .commentbar__input:focus {
   outline: none;
   border-bottom-color: var(--ink);
+}
+
+/* ─────────────────────────────────────────────────────────────
+   ЭКРАН «ЖДУ»: люди и карточка человека
+   ───────────────────────────────────────────────────────────── */
+
+/* Переключатель Список / По людям */
+.segmented--tabs {
+  margin-bottom: 22px;
+}
+
+/* Строка человека */
+.prow {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: none;
+  border: none;
+  border-bottom: 1px solid var(--hairline);
+  padding: 13px 0;
+  font: inherit;
+  color: inherit;
+}
+.prow:active .prow__name {
+  color: var(--muted);
+}
+.prow__name {
+  font-size: 15.5px;
+  color: var(--ink);
+}
+.prow__meta {
+  margin-top: 3px;
+  font-size: 12.5px;
+  color: var(--muted);
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+.prow__rel {
+  margin-left: auto;
+}
+
+/* Карточка человека */
+.person__rel {
+  font-size: 13px;
+  color: var(--muted);
+  margin-bottom: 16px;
+}
+.person__role {
+  margin-bottom: 22px;
+}
+.person__list .row {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: none;
+  border: none;
+  border-bottom: 1px solid var(--hairline);
+  padding: 13px 0;
+  font: inherit;
+  color: inherit;
+}
+.person__list .row:active .row__title {
+  color: var(--muted);
 }

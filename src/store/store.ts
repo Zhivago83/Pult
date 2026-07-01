@@ -7,7 +7,7 @@
 // ─────────────────────────────────────────────────────────────
 
 import { openDB, type IDBPDatabase } from 'idb'
-import type { Item, Op } from '../types'
+import type { Item, Op, Person } from '../types'
 
 /** Контракт хранилища — то, что нужно ядру приложения. */
 export interface Store {
@@ -16,12 +16,16 @@ export interface Store {
   removeItem(id: string): Promise<void>
   allOps(): Promise<Op[]>
   putOp(op: Op): Promise<void>
+  allPeople(): Promise<Person[]>
+  putPerson(person: Person): Promise<void>
+  removePerson(name: string): Promise<void>
 }
 
 const DB_NAME = 'pult'
-const DB_VERSION = 1
+const DB_VERSION = 2
 const ITEMS = 'items'
 const OPS = 'ops'
+const PEOPLE = 'people'
 
 let dbPromise: Promise<IDBPDatabase> | null = null
 
@@ -35,6 +39,10 @@ function db(): Promise<IDBPDatabase> {
         if (!database.objectStoreNames.contains(OPS)) {
           const ops = database.createObjectStore(OPS, { keyPath: 'id' })
           ops.createIndex('by-ts', 'ts')
+        }
+        // Добавлено во 2-й версии: люди (роль команда/исполнитель).
+        if (!database.objectStoreNames.contains(PEOPLE)) {
+          database.createObjectStore(PEOPLE, { keyPath: 'name' })
         }
       },
     })
@@ -58,5 +66,14 @@ export const idbStore: Store = {
   },
   async putOp(op) {
     await (await db()).put(OPS, op)
+  },
+  async allPeople() {
+    return (await db()).getAll(PEOPLE) as Promise<Person[]>
+  },
+  async putPerson(person) {
+    await (await db()).put(PEOPLE, person)
+  },
+  async removePerson(name) {
+    await (await db()).delete(PEOPLE, name)
   },
 }
