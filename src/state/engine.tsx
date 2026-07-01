@@ -64,6 +64,8 @@ export interface Engine {
   dayNote: string
   /** Изменить заметку дня. */
   setDayNote(text: string): void
+  /** Найти пункт по id среди всех (в работе / выполнено / корзина). */
+  findItem(id: string): Item | undefined
   /** Собрать полный снимок данных (для скачивания). */
   exportData(): Promise<Backup>
   /** Заменить все данные из бэкапа. */
@@ -526,6 +528,7 @@ export function EngineProvider({
     people,
     dayNote,
     setDayNote,
+    findItem: (id: string) => items.find((it) => it.id === id),
     exportData,
     importData,
     pending,
