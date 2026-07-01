@@ -3,6 +3,39 @@
 
 const DAY = 24 * 60 * 60 * 1000
 
+const MONTHS = ['янв', 'фев', 'мар', 'апр', 'мая', 'июн', 'июл', 'авг', 'сен', 'окт', 'ноя', 'дек']
+
+/** Абсолютная короткая дата: «12 июл». Для сроков в карточке и истории. */
+export function formatDateShort(ts: number): string {
+  const d = new Date(ts)
+  return `${d.getDate()} ${MONTHS[d.getMonth()]}`
+}
+
+/** Дата и время: «12 июл, 14:30». Для ленты истории. */
+export function formatDateTime(ts: number): string {
+  const d = new Date(ts)
+  const hh = String(d.getHours()).padStart(2, '0')
+  const mm = String(d.getMinutes()).padStart(2, '0')
+  return `${formatDateShort(ts)}, ${hh}:${mm}`
+}
+
+/** Значение поля <input type="date"> (ГГГГ-ММ-ДД) → метка времени. */
+export function dateInputToTs(value: string): number | undefined {
+  if (!value) return undefined
+  const d = new Date(value + 'T18:00:00') // условный «конец рабочего дня»
+  return Number.isNaN(d.getTime()) ? undefined : d.getTime()
+}
+
+/** Метка времени → значение поля <input type="date"> (ГГГГ-ММ-ДД). */
+export function tsToDateInput(ts: number | undefined): string {
+  if (ts == null) return ''
+  const d = new Date(ts)
+  const y = d.getFullYear()
+  const m = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${y}-${m}-${day}`
+}
+
 /** Начало суток для метки времени. */
 function startOfDay(ts: number): number {
   const d = new Date(ts)
@@ -27,7 +60,5 @@ export function formatDue(dueAt: number | undefined, now: number): string {
   if (diff === 0) return 'сегодня'
   if (diff === 1) return 'завтра'
   if (diff <= 6) return `+${diff}д`
-  const d = new Date(dueAt)
-  const months = ['янв', 'фев', 'мар', 'апр', 'мая', 'июн', 'июл', 'авг', 'сен', 'окт', 'ноя', 'дек']
-  return `${d.getDate()} ${months[d.getMonth()]}`
+  return formatDateShort(dueAt)
 }

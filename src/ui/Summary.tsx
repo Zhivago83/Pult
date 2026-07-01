@@ -9,7 +9,7 @@ import { useNow } from './useNow'
  * Экран «Сводка»: термометр дня + секции по тревожности.
  * Пустой экран — спокойный, без цвета.
  */
-export function Summary() {
+export function Summary({ onOpen }: { onOpen: (id: string) => void }) {
   const { items, close, trash } = useEngine()
   const now = useNow()
   const summary = useMemo(() => buildSummary(items, now), [items, now])
@@ -32,7 +32,14 @@ export function Summary() {
               {section.title}
             </div>
             {section.items.map((vi) => (
-              <ItemRow key={vi.item.id} vi={vi} now={now} onClose={close} onTrash={trash} />
+              <ItemRow
+                key={vi.item.id}
+                vi={vi}
+                now={now}
+                onClose={close}
+                onTrash={trash}
+                onOpen={onOpen}
+              />
             ))}
           </section>
         ))
