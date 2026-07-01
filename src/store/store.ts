@@ -21,6 +21,8 @@ export interface Store {
   removePerson(name: string): Promise<void>
   getDayNote(): Promise<DayNote | undefined>
   putDayNote(note: DayNote): Promise<void>
+  /** Полностью очистить все данные (для импорта бэкапа). */
+  clearAll(): Promise<void>
 }
 
 const DB_NAME = 'pult'
@@ -92,5 +94,14 @@ export const idbStore: Store = {
   },
   async putDayNote(note) {
     await (await db()).put(SETTINGS, { key: DAY_NOTE_KEY, ...note })
+  },
+  async clearAll() {
+    const database = await db()
+    await Promise.all([
+      database.clear(ITEMS),
+      database.clear(OPS),
+      database.clear(PEOPLE),
+      database.clear(SETTINGS),
+    ])
   },
 }

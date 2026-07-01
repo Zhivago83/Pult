@@ -540,6 +540,17 @@ button {
   font-size: 12px;
   color: var(--muted);
 }
+
+/* «Ещё»: резервная копия */
+.more__row {
+  display: flex;
+  gap: 12px;
+}
+.more__msg {
+  margin-top: 12px;
+  font-size: 13px;
+  color: var(--ink);
+}
 .btn--danger {
   color: var(--red);
 }

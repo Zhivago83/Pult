@@ -21,6 +21,18 @@ export interface DayNote {
   day: string
 }
 
+/** Полный снимок данных для экспорта/импорта (бэкап). */
+export interface Backup {
+  /** Версия формата бэкапа. */
+  version: number
+  /** Когда сделан экспорт (метка времени). */
+  exportedAt: number
+  items: Item[]
+  ops: Op[]
+  people: Person[]
+  dayNote: DayNote | null
+}
+
 /**
  * Человек, от которого чего-то ждём. Людей узнаём по имени (поле `who`
  * у пунктов). Здесь храним только то, что нельзя вычислить из пунктов, —
