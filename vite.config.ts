@@ -4,6 +4,9 @@ import { VitePWA } from 'vite-plugin-pwa'
 
 // https://vite.dev/config/
 export default defineConfig({
+  // Приложение публикуется на GitHub Pages по адресу .../pult/,
+  // поэтому базовый путь — /pult/.
+  base: '/pult/',
   plugins: [
     react(),
     VitePWA({
@@ -17,7 +20,8 @@ export default defineConfig({
         background_color: '#f4f1ea',
         display: 'standalone',
         orientation: 'portrait',
-        start_url: '/',
+        scope: '/pult/',
+        start_url: '/pult/',
         icons: [
           { src: 'icon-192.png', sizes: '192x192', type: 'image/png' },
           { src: 'icon-512.png', sizes: '512x512', type: 'image/png' },
