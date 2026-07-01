@@ -28,6 +28,8 @@ function describeEdit(before: Item | null, after: Item | null): string {
   if (before.who !== after.who) parts.push(`владелец: ${after.who || '—'}`)
   if (before.project !== after.project) parts.push(`проект: ${after.project || '—'}`)
   if (before.dueAt !== after.dueAt) parts.push(`срок: ${dueLabel(after.dueAt)}`)
+  if (before.nextTouchAt !== after.nextTouchAt)
+    parts.push(`напомнить: ${dueLabel(after.nextTouchAt)}`)
   return parts.length ? parts.join(' · ') : 'изменено'
 }
 
@@ -62,10 +64,12 @@ export function buildTimeline(ops: Op[], item: Item): TimelineEntry[] {
       case 'restore':
         text = 'Восстановлено'
         break
-      case 'remind':
+      case 'remind': {
         kind = 'remind'
-        text = 'Напомнил'
+        const next = op.after?.nextTouchAt
+        text = next != null ? `Напомнил · снова ${dueLabel(next)}` : 'Напомнил'
         break
+      }
       case 'comment':
         kind = 'comment'
         text = op.text ?? ''

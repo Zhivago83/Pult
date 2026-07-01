@@ -41,9 +41,14 @@ function isBurning(item: Item, now: number): boolean {
   return item.dueAt != null && item.dueAt <= now + SOON_MS
 }
 
-/** «Пора пнуть»: ожидание на подходе к сроку либо давно висит без срока. */
+/**
+ * «Пора пнуть»: пора коснуться снова.
+ *  • если задана дата следующего касания — она уже наступила;
+ *  • иначе — ожидание на подходе к сроку либо давно висит без срока.
+ */
 function isNudge(item: Item, now: number): boolean {
   if (item.kind !== 'waiting') return false
+  if (item.nextTouchAt != null) return item.nextTouchAt <= now
   if (item.dueAt != null) return item.dueAt <= now + NUDGE_MS
   return now - item.createdAt >= STALE_MS
 }

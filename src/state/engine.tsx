@@ -19,7 +19,7 @@ import {
 import type { Item, Kind, Op, OpType, Person, Role } from '../types'
 import { idbStore, type Store } from '../store/store'
 import { newId } from '../core/id'
-import { GRACE_MS } from '../core/constants'
+import { GRACE_MS, REMIND_SNOOZE_MS } from '../core/constants'
 import { seedItems, seedPeople } from '../core/seed'
 
 /** Сколько миллисекунд висит плашка «Отменить». */
@@ -34,7 +34,7 @@ export interface CaptureInput {
 }
 
 /** Что можно поправить в карточке пункта. */
-export type EditPatch = Partial<Pick<Item, 'title' | 'who' | 'project' | 'dueAt'>>
+export type EditPatch = Partial<Pick<Item, 'title' | 'who' | 'project' | 'dueAt' | 'nextTouchAt'>>
 
 /** Плашка Undo: что именно предлагаем отменить. */
 export interface Pending {
@@ -212,25 +212,32 @@ export function EngineProvider({
     void commit('restore', before, after)
   }
 
-  /** Поправить поля пункта. Пустые строки очищают значение. */
+  /**
+   * Поправить поля пункта. Пустые строки очищают текст, а передача
+   * `dueAt: undefined` / `nextTouchAt: undefined` очищает дату. Наличие
+   * ключа в patch (даже со значением undefined) значит «поменять это поле».
+   */
   function edit(id: string, patch: EditPatch) {
     const before = items.find((it) => it.id === id)
     if (!before) return
-    const clean: EditPatch = {}
-    if (patch.title !== undefined) clean.title = patch.title.trim()
-    if (patch.who !== undefined) clean.who = patch.who.trim() || undefined
-    if (patch.project !== undefined) clean.project = patch.project.trim() || undefined
-    if (patch.dueAt !== undefined) clean.dueAt = patch.dueAt
-    // Заголовок не может стать пустым.
-    if (clean.title !== undefined && clean.title === '') delete clean.title
+    const after: Item = { ...before, updatedAt: now() }
+    // Заголовок правим, только если он не пустой.
+    if ('title' in patch) {
+      const t = (patch.title ?? '').trim()
+      if (t) after.title = t
+    }
+    if ('who' in patch) after.who = (patch.who ?? '').trim() || undefined
+    if ('project' in patch) after.project = (patch.project ?? '').trim() || undefined
+    if ('dueAt' in patch) after.dueAt = patch.dueAt
+    if ('nextTouchAt' in patch) after.nextTouchAt = patch.nextTouchAt
 
-    const after: Item = { ...before, ...clean, updatedAt: now() }
     // Ничего не поменялось — не засоряем журнал.
     if (
       after.title === before.title &&
       after.who === before.who &&
       after.project === before.project &&
-      after.dueAt === before.dueAt
+      after.dueAt === before.dueAt &&
+      after.nextTouchAt === before.nextTouchAt
     ) {
       return
     }
@@ -245,11 +252,16 @@ export function EngineProvider({
     void commit('comment', item, { ...item, updatedAt: now() }, trimmed)
   }
 
-  /** Отметка «напомнил»: запись в историю (для «жду от кого-то»). */
+  /**
+   * Отметка «напомнил»: пишем в историю и сдвигаем дату следующего
+   * касания вперёд (напомнил — значит снова коснуться через несколько дней).
+   */
   function markReminded(id: string) {
     const item = items.find((it) => it.id === id)
     if (!item) return
-    void commit('remind', item, { ...item, updatedAt: now() })
+    const t = now()
+    const after: Item = { ...item, nextTouchAt: t + REMIND_SNOOZE_MS, updatedAt: t }
+    void commit('remind', item, after)
   }
 
   /** Применить снимок человека к состоянию (заменить/добавить/убрать). */

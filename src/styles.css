@@ -261,6 +261,13 @@ button {
   content: '# ';
   color: var(--muted);
 }
+.row__touch {
+  color: var(--muted);
+}
+.row__touch::before {
+  content: '↻ ';
+  color: var(--muted);
+}
 .row__due {
   color: var(--muted);
 }

@@ -33,7 +33,8 @@ export function seedItems(now: number): Item[] {
       title: 'Отчёт по продажам за июнь',
       who: 'Марина',
       project: 'Отчётность',
-      dueAt: now + 2 * DAY, // ожидание на подходе → «пора пнуть»
+      dueAt: now + 2 * DAY,
+      nextTouchAt: now + 3 * DAY, // касание запланировано, пинать пока рано
       createdAt: 4 * DAY,
     }),
     base({
@@ -49,7 +50,8 @@ export function seedItems(now: number): Item[] {
       kind: 'waiting',
       title: 'Правки в презентацию для правления',
       who: 'Игорь',
-      // без проекта и срока → спокойное «Ожидания»
+      // без срока, но пора коснуться → попадёт в «Пора пнуть»
+      nextTouchAt: now - 2 * HOUR,
       createdAt: 4 * HOUR,
     }),
     base({
