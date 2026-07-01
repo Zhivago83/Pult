@@ -21,6 +21,7 @@ import { idbStore, type Store } from '../store/store'
 import { newId } from '../core/id'
 import { GRACE_MS, REMIND_SNOOZE_MS, PURGE_AFTER_MS } from '../core/constants'
 import { seedItems, seedPeople } from '../core/seed'
+import { spawnNext } from '../core/recur'
 
 /** Сколько миллисекунд висит плашка «Отменить». */
 const TOAST_MS = 7000
@@ -35,7 +36,9 @@ export interface CaptureInput {
 }
 
 /** Что можно поправить в карточке пункта. */
-export type EditPatch = Partial<Pick<Item, 'title' | 'who' | 'project' | 'dueAt' | 'nextTouchAt'>>
+export type EditPatch = Partial<
+  Pick<Item, 'title' | 'who' | 'project' | 'dueAt' | 'nextTouchAt' | 'repeat'>
+>
 
 /** Плашка Undo: что именно предлагаем отменить. */
 export interface Pending {
@@ -199,7 +202,21 @@ export function EngineProvider({
       graceUntil: t + GRACE_MS, // period благодати: 6 секунд зачёркнут
       updatedAt: t,
     }
-    void commit('close', before, after)
+    // Повторяющийся — сразу создаём следующий такой же пункт.
+    const spawned = before.repeat ? spawnNext(before, newId(), t) : undefined
+    const op: Op = { id: newId(), ts: t, type: 'close', itemId: id, before, after, spawned }
+    ;(async () => {
+      await store.putItem(after)
+      if (spawned) await store.putItem(spawned)
+      await store.putOp(op)
+      setItems((prev) => {
+        const updated = prev.map((it) => (it.id === id ? after : it))
+        return spawned ? [...updated, spawned] : updated
+      })
+      setOps((prev) => [...prev, op])
+      setPending({ op, label: OP_LABELS.close })
+      scheduleToastHide()
+    })()
   }
 
   function trash(id: string) {
@@ -280,6 +297,7 @@ export function EngineProvider({
     if ('project' in patch) after.project = (patch.project ?? '').trim() || undefined
     if ('dueAt' in patch) after.dueAt = patch.dueAt
     if ('nextTouchAt' in patch) after.nextTouchAt = patch.nextTouchAt
+    if ('repeat' in patch) after.repeat = patch.repeat
 
     // Ничего не поменялось — не засоряем журнал.
     if (
@@ -287,7 +305,8 @@ export function EngineProvider({
       after.who === before.who &&
       after.project === before.project &&
       after.dueAt === before.dueAt &&
-      after.nextTouchAt === before.nextTouchAt
+      after.nextTouchAt === before.nextTouchAt &&
+      after.repeat === before.repeat
     ) {
       return
     }
@@ -370,6 +389,12 @@ export function EngineProvider({
         if (before) await store.putItem(before)
         else await store.removeItem(id)
         applySnapshot(id, before)
+        // Закрытие повторяющегося породило следующий пункт — убираем его.
+        if (op.spawned) {
+          await store.removeItem(op.spawned.id)
+          const spawnedId = op.spawned.id
+          setItems((prev) => prev.filter((it) => it.id !== spawnedId))
+        }
       }
       await store.putOp(undoneOp)
       setOps((prev) => prev.map((o) => (o.id === undoneOp.id ? undoneOp : o)))

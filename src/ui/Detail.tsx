@@ -2,10 +2,19 @@ import { useEffect, useMemo, useState } from 'react'
 import { useEngine } from '../state/engine'
 import { buildTimeline } from '../core/timeline'
 import { formatDateShort, formatDateTime, dateInputToTs, tsToDateInput } from '../core/time'
+import { repeatShort } from '../core/recur'
 import { SOON_MS } from '../core/constants'
+import type { Repeat } from '../types'
 import { useNow } from './useNow'
 
-type Field = 'title' | 'who' | 'project' | 'due' | 'touch'
+type Field = 'title' | 'who' | 'project' | 'due' | 'touch' | 'repeat'
+
+const REPEAT_OPTIONS: Array<{ value: Repeat | undefined; label: string }> = [
+  { value: undefined, label: 'нет' },
+  { value: 'daily', label: 'день' },
+  { value: 'weekly', label: 'неделя' },
+  { value: 'monthly', label: 'месяц' },
+]
 
 /**
  * Карточка пункта: заголовок и «пилюли» правятся тапом (только поля
@@ -72,6 +81,7 @@ export function Detail({ id, onClose }: { id: string; onClose: () => void }) {
     project: 'Проект',
     due: 'Срок',
     touch: 'Напомнить',
+    repeat: 'Повтор',
   }
 
   return (
@@ -127,10 +137,35 @@ export function Detail({ id, onClose }: { id: string; onClose: () => void }) {
               </span>
             </button>
           )}
+          <button className="pill" onClick={() => startEdit('repeat')}>
+            <span className="pill__key">повтор</span>
+            <span className="pill__val data">{repeatShort(item.repeat)}</span>
+          </button>
         </div>
 
-        {/* Инлайн-редактор выбранного поля */}
-        {editing && editing !== 'title' && (
+        {/* Редактор повтора — выбор из вариантов */}
+        {editing === 'repeat' && (
+          <div className="editor">
+            <label className="editor__label">Повтор</label>
+            <div className="repeat-options">
+              {REPEAT_OPTIONS.map((o) => (
+                <button
+                  key={o.label}
+                  className={(item.repeat ?? undefined) === o.value ? 'is-active' : ''}
+                  onClick={() => {
+                    edit(id, { repeat: o.value })
+                    setEditing(null)
+                  }}
+                >
+                  {o.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Инлайн-редактор текстового / датного поля */}
+        {editing && editing !== 'title' && editing !== 'repeat' && (
           <div className="editor">
             <label className="editor__label">{fieldLabel[editing]}</label>
             {editing === 'due' || editing === 'touch' ? (
