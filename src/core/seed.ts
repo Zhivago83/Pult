@@ -2,7 +2,7 @@
 // и сразу показывала все секции. Засеваются один раз (когда база
 // пуста) и дальше живут как обычные данные — их можно закрыть/удалить.
 
-import type { Item } from '../types'
+import type { Item, Person } from '../types'
 
 const HOUR = 60 * 60 * 1000
 const DAY = 24 * HOUR
@@ -49,5 +49,33 @@ export function seedItems(now: number): Item[] {
       // без срока, свежее → спокойное «Ожидания»
       createdAt: 4 * HOUR,
     }),
+    base({
+      id: 'seed-5',
+      kind: 'waiting',
+      title: 'Смета на ремонт офиса',
+      who: 'Марина',
+      dueAt: now + 6 * DAY,
+      createdAt: 2 * DAY,
+    }),
+    base({
+      id: 'seed-6',
+      kind: 'waiting',
+      title: 'Договор с подрядчиком',
+      who: 'Пётр',
+      dueAt: now - 1 * DAY, // просрочено → у Петра «срывал срок» (красное)
+      createdAt: 5 * DAY,
+    }),
+  ]
+}
+
+/**
+ * Демо-роли людей для первого запуска: Марина — команда, Игорь и Пётр —
+ * исполнители. Так на экране «Жду → По людям» сразу видно обе группы.
+ */
+export function seedPeople(): Person[] {
+  return [
+    { name: 'Марина', role: 'team' },
+    { name: 'Игорь', role: 'contractor' },
+    { name: 'Пётр', role: 'contractor' },
   ]
 }
