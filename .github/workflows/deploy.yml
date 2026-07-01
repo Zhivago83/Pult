@@ -28,6 +28,8 @@ jobs:
         with:
           node-version: 20
           cache: npm
+      # Автоматически включает GitHub Pages для репозитория при первом запуске.
+      - uses: actions/configure-pages@v5
       - run: npm ci
       # BASE=/Pult/ — приложение живёт по адресу https://<user>.github.io/Pult/
       - run: npm run build
