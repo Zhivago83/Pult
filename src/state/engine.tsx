@@ -16,7 +16,7 @@ import {
   useState,
   type ReactNode,
 } from 'react'
-import type { DayNote, Item, Kind, Op, OpType, Person, Role } from '../types'
+import type { Backup, DayNote, Item, Kind, Op, OpType, Person, Role } from '../types'
 import { idbStore, type Store } from '../store/store'
 import { newId } from '../core/id'
 import { tsToDateInput } from '../core/time'
@@ -26,6 +26,9 @@ import { spawnNext } from '../core/recur'
 
 /** Сколько миллисекунд висит плашка «Отменить». */
 const TOAST_MS = 7000
+
+/** Версия формата бэкапа. */
+const BACKUP_VERSION = 1
 
 /** Ввод при захвате нового пункта. */
 export interface CaptureInput {
@@ -61,6 +64,10 @@ export interface Engine {
   dayNote: string
   /** Изменить заметку дня. */
   setDayNote(text: string): void
+  /** Собрать полный снимок данных (для скачивания). */
+  exportData(): Promise<Backup>
+  /** Заменить все данные из бэкапа. */
+  importData(backup: Backup): Promise<void>
   pending: Pending | null
   capture(input: CaptureInput): void
   close(id: string): void
@@ -423,6 +430,40 @@ export function EngineProvider({
     })()
   }
 
+  /** Собрать полный снимок всех данных (авторитетно — из хранилища). */
+  async function exportData(): Promise<Backup> {
+    const [i, o, p, n] = await Promise.all([
+      store.allItems(),
+      store.allOps(),
+      store.allPeople(),
+      store.getDayNote(),
+    ])
+    return { version: BACKUP_VERSION, exportedAt: now(), items: i, ops: o, people: p, dayNote: n ?? null }
+  }
+
+  /** Заменить все данные данными из бэкапа. */
+  async function importData(backup: Backup) {
+    if (
+      !backup ||
+      !Array.isArray(backup.items) ||
+      !Array.isArray(backup.ops) ||
+      !Array.isArray(backup.people)
+    ) {
+      throw new Error('Файл не похож на резервную копию Пульта.')
+    }
+    await store.clearAll()
+    for (const it of backup.items) await store.putItem(it)
+    for (const op of backup.ops) await store.putOp(op)
+    for (const p of backup.people) await store.putPerson(p)
+    if (backup.dayNote) await store.putDayNote(backup.dayNote)
+    setItems(backup.items)
+    setOps(backup.ops)
+    setPeople(backup.people)
+    setNote(backup.dayNote ?? null)
+    setPending(null)
+    if (toastTimer.current != null) window.clearTimeout(toastTimer.current)
+  }
+
   /** Отменить последнее действие: вернуть снимок «до». */
   function undo() {
     if (!pending) return
@@ -485,6 +526,8 @@ export function EngineProvider({
     people,
     dayNote,
     setDayNote,
+    exportData,
+    importData,
     pending,
     capture,
     close,
