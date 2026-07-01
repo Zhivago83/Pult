@@ -30,6 +30,7 @@ export interface CaptureInput {
   kind: Kind
   title: string
   who?: string
+  project?: string
   dueAt?: number
 }
 
@@ -161,6 +162,7 @@ export function EngineProvider({
       kind: input.kind,
       title: input.title.trim(),
       who: input.who?.trim() || undefined,
+      project: input.project?.trim() || undefined,
       dueAt: input.dueAt,
       status: 'open',
       createdAt: t,

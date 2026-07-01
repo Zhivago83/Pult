@@ -434,6 +434,17 @@ button {
   font-family: var(--font-data);
 }
 
+/* Подсказка умного захвата под полем ввода */
+.capture__hint {
+  margin-top: 8px;
+  font-size: 12.5px;
+  color: var(--ink);
+}
+.capture__hint--muted {
+  color: var(--muted);
+  font-family: var(--font-text);
+}
+
 .sheet__row {
   display: flex;
   gap: 12px;
