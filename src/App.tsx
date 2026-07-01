@@ -1,44 +1,51 @@
-// Корневой экран: шапка, Сводка, кнопка «+», плашка Undo и листы
-// (Захват / Корзина).
 import { useState } from 'react'
-import { Summary } from './screens/Summary'
-import { Capture } from './components/Capture'
-import { Trash } from './components/Trash'
-import { UndoToast } from './components/UndoToast'
-import { useTheme } from './core/theme'
+import { EngineProvider, useEngine } from './state/engine'
+import { useTheme } from './ui/useTheme'
+import { Summary } from './ui/Summary'
+import { Capture } from './ui/Capture'
+import { Trash } from './ui/Trash'
+import { UndoToast } from './ui/UndoToast'
 
-type Sheet = 'none' | 'capture' | 'trash'
-
-export function App() {
-  const [sheet, setSheet] = useState<Sheet>('none')
+function Shell() {
+  const { ready, trashed } = useEngine()
   const { theme, toggle } = useTheme()
+  const [showCapture, setShowCapture] = useState(false)
+  const [showTrash, setShowTrash] = useState(false)
+
+  if (!ready) return <div className="app" />
 
   return (
     <div className="app">
       <header className="topbar">
-        <h1>Пульт</h1>
-        <div className="tools">
-          <button className="icon-btn" onClick={toggle}>
-            {theme === 'paper' ? 'Бумага' : 'Консоль'}
+        <div className="topbar__title">Пульт руководителя</div>
+        <div className="topbar__actions">
+          <button className="linkbtn" onClick={() => setShowTrash(true)}>
+            Корзина{trashed.length ? ` · ${trashed.length}` : ''}
           </button>
-          <button className="icon-btn" onClick={() => setSheet('trash')}>
-            Корзина
+          <button className="linkbtn" onClick={toggle}>
+            {theme === 'paper' ? 'Консоль' : 'Бумага'}
           </button>
         </div>
       </header>
 
       <Summary />
 
-      <button className="fab" onClick={() => setSheet('capture')} aria-label="Добавить">
+      <button className="fab" aria-label="Добавить пункт" onClick={() => setShowCapture(true)}>
         +
       </button>
 
-      {sheet === 'capture' && (
-        <Capture onClose={() => setSheet('none')} onCreated={() => {}} />
-      )}
-      {sheet === 'trash' && <Trash onClose={() => setSheet('none')} />}
+      {showCapture && <Capture onClose={() => setShowCapture(false)} />}
+      {showTrash && <Trash onClose={() => setShowTrash(false)} />}
 
       <UndoToast />
     </div>
+  )
+}
+
+export default function App() {
+  return (
+    <EngineProvider>
+      <Shell />
+    </EngineProvider>
   )
 }

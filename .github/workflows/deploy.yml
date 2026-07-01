@@ -1,46 +1,41 @@
-name: Публикация на GitHub Pages
+# Автопубликация приложения на GitHub Pages.
+# После каждого пуша в рабочую ветку собирает проект и выкладывает его,
+# чтобы можно было открыть ссылку в Safari на айпаде.
+name: Deploy to GitHub Pages
 
-# Запускается при обновлении ветки main, а также вручную кнопкой в разделе Actions.
 on:
   push:
-    branches: [main]
+    branches:
+      - main
+      - claude/pult-manager-app-4yk5st
   workflow_dispatch:
 
-# Права, нужные для публикации на Pages.
 permissions:
   contents: read
   pages: write
   id-token: write
 
-# Публикуем по одной за раз, не отменяя уже идущую.
 concurrency:
   group: pages
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - name: Забрать код
-        uses: actions/checkout@v4
-
-      - name: Установить Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: npm
-
-      - name: Установить зависимости
-        run: npm ci
-
-      - name: Собрать приложение
-        run: npm run build
-
-      - name: Настроить Pages
-        uses: actions/configure-pages@v5
-
-      - name: Загрузить собранные файлы
-        uses: actions/upload-pages-artifact@v3
+      # Автоматически включает GitHub Pages для репозитория при первом запуске.
+      - uses: actions/configure-pages@v5
+      - run: npm ci
+      # BASE=/Pult/ — приложение живёт по адресу https://<user>.github.io/Pult/
+      - run: npm run build
+        env:
+          BASE: /Pult/
+      - uses: actions/upload-pages-artifact@v3
         with:
           path: dist
 
@@ -51,6 +46,5 @@ jobs:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
-      - name: Опубликовать
-        id: deployment
+      - id: deployment
         uses: actions/deploy-pages@v4
