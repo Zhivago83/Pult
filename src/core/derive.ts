@@ -6,7 +6,7 @@
 // ─────────────────────────────────────────────────────────────
 
 import type { Item } from '../types'
-import { SOON_MS, NUDGE_MS, STALE_MS } from './constants'
+import { thresholds } from './settings'
 
 /** Идентификаторы секций Сводки в порядке тревожности (сверху вниз). */
 export type SectionId = 'burning' | 'nudge' | 'mine' | 'waiting'
@@ -38,7 +38,7 @@ export interface Summary {
 
 /** «Горит»: есть срок и он уже прошёл или наступит в ближайшие часы. */
 function isBurning(item: Item, now: number): boolean {
-  return item.dueAt != null && item.dueAt <= now + SOON_MS
+  return item.dueAt != null && item.dueAt <= now + thresholds().soonMs
 }
 
 /**
@@ -49,8 +49,9 @@ function isBurning(item: Item, now: number): boolean {
 function isNudge(item: Item, now: number): boolean {
   if (item.kind !== 'waiting') return false
   if (item.nextTouchAt != null) return item.nextTouchAt <= now
-  if (item.dueAt != null) return item.dueAt <= now + NUDGE_MS
-  return now - item.createdAt >= STALE_MS
+  const t = thresholds()
+  if (item.dueAt != null) return item.dueAt <= now + t.nudgeMs
+  return now - item.createdAt >= t.staleMs
 }
 
 /** Виден ли пункт в Сводке: активен или доживает период благодати. */

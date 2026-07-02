@@ -9,7 +9,7 @@ import { PersonCard } from './ui/PersonCard'
 import { ProjectCard } from './ui/ProjectCard'
 import { Archive } from './ui/Archive'
 import { Trash } from './ui/Trash'
-import { More } from './ui/More'
+import { Settings } from './ui/Settings'
 import { Search } from './ui/Search'
 import { UndoToast } from './ui/UndoToast'
 
@@ -21,7 +21,7 @@ function Shell() {
   const [showCapture, setShowCapture] = useState(false)
   const [showTrash, setShowTrash] = useState(false)
   const [showArchive, setShowArchive] = useState(false)
-  const [showMore, setShowMore] = useState(false)
+  const [showSettings, setShowSettings] = useState(false)
   const [showSearch, setShowSearch] = useState(false)
   const [openId, setOpenId] = useState<string | null>(null)
   const [openPerson, setOpenPerson] = useState<string | null>(null)
@@ -48,7 +48,11 @@ function Shell() {
           <button className="linkbtn" onClick={() => setShowTrash(true)}>
             Корзина{trashed.length ? ` · ${trashed.length}` : ''}
           </button>
-          <button className="linkbtn linkbtn--icon" aria-label="Ещё" onClick={() => setShowMore(true)}>
+          <button
+            className="linkbtn linkbtn--icon"
+            aria-label="Настройки"
+            onClick={() => setShowSettings(true)}
+          >
             ⋯
           </button>
         </div>
@@ -104,7 +108,7 @@ function Shell() {
       {openId && <Detail id={openId} onClose={() => setOpenId(null)} />}
       {showTrash && <Trash onClose={() => setShowTrash(false)} />}
       {showSearch && <Search onOpenItem={setOpenId} onClose={() => setShowSearch(false)} />}
-      {showMore && <More onClose={() => setShowMore(false)} />}
+      {showSettings && <Settings onClose={() => setShowSettings(false)} />}
 
       <UndoToast />
     </div>

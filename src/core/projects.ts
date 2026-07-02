@@ -5,7 +5,7 @@
 // ─────────────────────────────────────────────────────────────
 
 import type { Item } from '../types'
-import { SOON_MS } from './constants'
+import { thresholds } from './settings'
 import type { VisibleItem } from './derive'
 
 /** Ключ «без проекта» — у пункта не задан project. */
@@ -25,7 +25,7 @@ export interface ProjectRow {
 }
 
 function isBurning(it: Item, now: number): boolean {
-  return it.dueAt != null && it.dueAt <= now + SOON_MS
+  return it.dueAt != null && it.dueAt <= now + thresholds().soonMs
 }
 
 export function projectDisplay(name: string): string {
