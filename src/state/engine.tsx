@@ -47,7 +47,7 @@ export interface CaptureInput {
 
 /** Что можно поправить в карточке пункта. */
 export type EditPatch = Partial<
-  Pick<Item, 'title' | 'who' | 'project' | 'dueAt' | 'nextTouchAt' | 'repeat'>
+  Pick<Item, 'title' | 'who' | 'project' | 'dueAt' | 'nextTouchAt' | 'repeat' | 'snoozedUntil'>
 >
 
 /** Плашка Undo: что именно предлагаем отменить. */
@@ -351,6 +351,7 @@ export function EngineProvider({
     if ('dueAt' in patch) after.dueAt = patch.dueAt
     if ('nextTouchAt' in patch) after.nextTouchAt = patch.nextTouchAt
     if ('repeat' in patch) after.repeat = patch.repeat
+    if ('snoozedUntil' in patch) after.snoozedUntil = patch.snoozedUntil
 
     // Ничего не поменялось — не засоряем журнал.
     if (
@@ -359,7 +360,8 @@ export function EngineProvider({
       after.project === before.project &&
       after.dueAt === before.dueAt &&
       after.nextTouchAt === before.nextTouchAt &&
-      after.repeat === before.repeat
+      after.repeat === before.repeat &&
+      after.snoozedUntil === before.snoozedUntil
     ) {
       return
     }

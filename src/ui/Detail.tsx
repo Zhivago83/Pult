@@ -7,7 +7,7 @@ import { thresholds } from '../core/settings'
 import type { Repeat } from '../types'
 import { useNow } from './useNow'
 
-type Field = 'title' | 'who' | 'project' | 'due' | 'touch' | 'repeat'
+type Field = 'title' | 'who' | 'project' | 'due' | 'touch' | 'repeat' | 'snooze'
 
 const REPEAT_OPTIONS: Array<{ value: Repeat | undefined; label: string }> = [
   { value: undefined, label: 'нет' },
@@ -48,6 +48,7 @@ export function Detail({ id, onClose }: { id: string; onClose: () => void }) {
     else if (field === 'project') setDraft(item.project ?? '')
     else if (field === 'due') setDraft(tsToDateInput(item.dueAt))
     else if (field === 'touch') setDraft(tsToDateInput(item.nextTouchAt))
+    else if (field === 'snooze') setDraft(tsToDateInput(item.snoozedUntil))
   }
 
   function saveEdit() {
@@ -57,6 +58,7 @@ export function Detail({ id, onClose }: { id: string; onClose: () => void }) {
     else if (editing === 'project') edit(id, { project: draft })
     else if (editing === 'due') edit(id, { dueAt: dateInputToTs(draft) })
     else if (editing === 'touch') edit(id, { nextTouchAt: dateInputToTs(draft) })
+    else if (editing === 'snooze') edit(id, { snoozedUntil: dateInputToTs(draft) })
     setEditing(null)
   }
 
@@ -65,6 +67,7 @@ export function Detail({ id, onClose }: { id: string; onClose: () => void }) {
     else if (editing === 'project') edit(id, { project: '' })
     else if (editing === 'due') edit(id, { dueAt: undefined })
     else if (editing === 'touch') edit(id, { nextTouchAt: undefined })
+    else if (editing === 'snooze') edit(id, { snoozedUntil: undefined })
     setEditing(null)
   }
 
@@ -82,6 +85,7 @@ export function Detail({ id, onClose }: { id: string; onClose: () => void }) {
     due: 'Срок',
     touch: 'Напомнить',
     repeat: 'Повтор',
+    snooze: 'Отложить до',
   }
 
   return (
@@ -141,6 +145,12 @@ export function Detail({ id, onClose }: { id: string; onClose: () => void }) {
             <span className="pill__key">повтор</span>
             <span className="pill__val data">{repeatShort(item.repeat)}</span>
           </button>
+          <button className="pill" onClick={() => startEdit('snooze')}>
+            <span className="pill__key">отложить</span>
+            <span className="pill__val data">
+              {item.snoozedUntil != null ? formatDateShort(item.snoozedUntil) : '—'}
+            </span>
+          </button>
         </div>
 
         {/* Редактор повтора — выбор из вариантов */}
@@ -168,7 +178,7 @@ export function Detail({ id, onClose }: { id: string; onClose: () => void }) {
         {editing && editing !== 'title' && editing !== 'repeat' && (
           <div className="editor">
             <label className="editor__label">{fieldLabel[editing]}</label>
-            {editing === 'due' || editing === 'touch' ? (
+            {editing === 'due' || editing === 'touch' || editing === 'snooze' ? (
               <input
                 className="editor__input data"
                 type="date"

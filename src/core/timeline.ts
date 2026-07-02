@@ -32,6 +32,8 @@ function describeEdit(before: Item | null, after: Item | null): string {
   if (before.nextTouchAt !== after.nextTouchAt)
     parts.push(`напомнить: ${dueLabel(after.nextTouchAt)}`)
   if (before.repeat !== after.repeat) parts.push(`повтор: ${repeatLabel(after.repeat)}`)
+  if (before.snoozedUntil !== after.snoozedUntil)
+    parts.push(after.snoozedUntil != null ? `отложено до ${dueLabel(after.snoozedUntil)}` : 'снято отложенное')
   return parts.length ? parts.join(' · ') : 'изменено'
 }
 

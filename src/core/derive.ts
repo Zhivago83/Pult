@@ -34,6 +34,8 @@ export interface Thermometer {
 export interface Summary {
   sections: Section[]
   thermometer: Thermometer
+  /** Сколько пунктов отложено (скрыто до даты). */
+  snoozed: number
 }
 
 /** «Горит»: есть срок и он уже прошёл или наступит в ближайшие часы. */
@@ -88,8 +90,14 @@ export function buildSummary(all: Item[], now: number): Summary {
   let burning = 0
   let waiting = 0
   let mine = 0
+  let snoozed = 0
 
   for (const item of all) {
+    // Отложенное скрываем из Сводки, но считаем — вернётся, когда придёт срок.
+    if (item.status === 'open' && item.snoozedUntil != null && item.snoozedUntil > now) {
+      snoozed++
+      continue
+    }
     if (!isVisible(item, now)) continue
     const closing = item.status === 'done'
     const vi: VisibleItem = { item, closing }
@@ -118,5 +126,6 @@ export function buildSummary(all: Item[], now: number): Summary {
   return {
     sections,
     thermometer: { burning, waiting, mine, total: burning + waiting + mine },
+    snoozed,
   }
 }

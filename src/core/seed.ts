@@ -42,7 +42,8 @@ export function seedItems(now: number): Item[] {
       kind: 'mine',
       title: 'Подготовить план найма на III квартал',
       project: 'Найм',
-      dueAt: now + 5 * DAY, // спокойное «моё»
+      dueAt: now + 5 * DAY,
+      snoozedUntil: now + 2 * DAY, // отложено: вернётся в Сводку через 2 дня
       createdAt: 1 * DAY,
     }),
     base({
