@@ -54,6 +54,12 @@ export function buildTimeline(ops: Op[], item: Item): TimelineEntry[] {
       case 'triage':
         text = 'Разложено'
         break
+      case 'attachDoc':
+        text = `Привязан документ: ${op.text ?? 'документ'}`
+        break
+      case 'detachDoc':
+        text = `Отвязан документ: ${op.text ?? 'документ'}`
+        break
       case 'edit':
         text = describeEdit(op.before, op.after)
         break

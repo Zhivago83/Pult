@@ -7,7 +7,7 @@
 // ─────────────────────────────────────────────────────────────
 
 import { openDB, type IDBPDatabase } from 'idb'
-import type { Item, Op, Person } from '../types'
+import type { Doc, Item, Op, Person } from '../types'
 
 /** Контракт хранилища — то, что нужно ядру приложения. */
 export interface Store {
@@ -19,6 +19,9 @@ export interface Store {
   allPeople(): Promise<Person[]>
   putPerson(person: Person): Promise<void>
   removePerson(name: string): Promise<void>
+  allDocs(): Promise<Doc[]>
+  putDoc(doc: Doc): Promise<void>
+  removeDoc(id: string): Promise<void>
 }
 
 const DB_NAME = 'pult'
@@ -26,10 +29,12 @@ const DB_NAME = 'pult'
 // версий, чтобы на устройствах, где успела появиться база v3, открытие
 // не падало с ошибкой понижения версии. Лишние сторы (если есть) просто
 // не используются.
-const DB_VERSION = 4
+// В 5-й версии добавлено хранилище документов (docs).
+const DB_VERSION = 5
 const ITEMS = 'items'
 const OPS = 'ops'
 const PEOPLE = 'people'
+const DOCS = 'docs'
 
 let dbPromise: Promise<IDBPDatabase> | null = null
 
@@ -47,6 +52,10 @@ function db(): Promise<IDBPDatabase> {
         // Добавлено во 2-й версии: люди (роль команда/исполнитель).
         if (!database.objectStoreNames.contains(PEOPLE)) {
           database.createObjectStore(PEOPLE, { keyPath: 'name' })
+        }
+        // Добавлено в 5-й версии: документы (карточки с полями).
+        if (!database.objectStoreNames.contains(DOCS)) {
+          database.createObjectStore(DOCS, { keyPath: 'id' })
         }
       },
     })
@@ -79,5 +88,14 @@ export const idbStore: Store = {
   },
   async removePerson(name) {
     await (await db()).delete(PEOPLE, name)
+  },
+  async allDocs() {
+    return (await db()).getAll(DOCS) as Promise<Doc[]>
+  },
+  async putDoc(doc) {
+    await (await db()).put(DOCS, doc)
+  },
+  async removeDoc(id) {
+    await (await db()).delete(DOCS, id)
   },
 }

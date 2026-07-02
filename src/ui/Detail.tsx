@@ -2,6 +2,9 @@ import { useEffect, useMemo, useState } from 'react'
 import { useEngine } from '../state/engine'
 import { buildTimeline } from '../core/timeline'
 import { projectNames } from '../core/projects'
+import { itemDocs, docLabel } from '../core/docs'
+import { AttachDocSheet } from './AttachDocSheet'
+import { DocCard } from './DocCard'
 import { formatDateShort, formatDateTime, dateInputToTs, tsToDateInput } from '../core/time'
 import { SOON_MS } from '../core/constants'
 import { useNow } from './useNow'
@@ -15,7 +18,7 @@ type Field = 'title' | 'who' | 'project' | 'due'
  * На телефоне — шторка снизу, на широком экране — панель справа.
  */
 export function Detail({ id, onClose }: { id: string; onClose: () => void }) {
-  const { items, ops, edit, addComment, markReminded, close } = useEngine()
+  const { items, ops, docs, edit, addComment, markReminded, close, detachDoc } = useEngine()
   const now = useNow()
   const item = items.find((it) => it.id === id)
   const timeline = useMemo(() => (item ? buildTimeline(ops, item) : []), [ops, item])
@@ -24,6 +27,8 @@ export function Detail({ id, onClose }: { id: string; onClose: () => void }) {
   const [editing, setEditing] = useState<Field | null>(null)
   const [draft, setDraft] = useState('')
   const [comment, setComment] = useState('')
+  const [showAttach, setShowAttach] = useState(false)
+  const [openDocId, setOpenDocId] = useState<string | null>(null)
 
   // Пункт мог исчезнуть (отмена создания, удаление) — закрываем карточку.
   useEffect(() => {
@@ -73,6 +78,7 @@ export function Detail({ id, onClose }: { id: string; onClose: () => void }) {
   }
 
   return (
+    <>
     <div className="sheet-backdrop" onClick={onClose}>
       <div className="sheet panel" onClick={(e) => e.stopPropagation()}>
         <div className="detail__top">
@@ -196,6 +202,38 @@ export function Detail({ id, onClose }: { id: string; onClose: () => void }) {
           <div className="detail__doneNote data">Выполнено</div>
         )}
 
+        {/* Документы */}
+        <div className="detail__histHead">
+          Документы{(item.docIds ?? []).length ? ` · ${(item.docIds ?? []).length}` : ''}
+        </div>
+        <div className="docs-block">
+          {itemDocs(docs, item).map((d) => (
+            <div className="row" key={d.id}>
+              <button className="row__body" onClick={() => setOpenDocId(d.id)}>
+                <div className="row__title data">{docLabel(d)}</div>
+                {(d.description || d.controlAt != null) && (
+                  <div className="row__meta">
+                    {d.description && <span>{d.description}</span>}
+                    {d.controlAt != null && (
+                      <span className="data">контроль {formatDateShort(d.controlAt)}</span>
+                    )}
+                  </div>
+                )}
+              </button>
+              <button
+                className="row__trash"
+                aria-label="Отвязать документ"
+                onClick={() => detachDoc(id, d.id)}
+              >
+                ✕
+              </button>
+            </div>
+          ))}
+          <button className="linkbtn docs-block__add" onClick={() => setShowAttach(true)}>
+            + Привязать документ
+          </button>
+        </div>
+
         {/* История касаний */}
         <div className="detail__histHead">История</div>
         <div className="timeline">
@@ -230,5 +268,8 @@ export function Detail({ id, onClose }: { id: string; onClose: () => void }) {
         </div>
       </div>
     </div>
+    {showAttach && <AttachDocSheet itemId={id} onClose={() => setShowAttach(false)} />}
+    {openDocId && <DocCard docId={openDocId} onClose={() => setOpenDocId(null)} />}
+    </>
   )
 }

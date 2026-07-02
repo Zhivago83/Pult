@@ -16,11 +16,12 @@ import {
   useState,
   type ReactNode,
 } from 'react'
-import type { Item, Op, OpType, Person, Role } from '../types'
+import type { Doc, Item, Op, OpType, Person, Role } from '../types'
 import { idbStore, type Store } from '../store/store'
 import { newId } from '../core/id'
+import { docLabel } from '../core/docs'
 import { GRACE_MS } from '../core/constants'
-import { seedItems, seedPeople } from '../core/seed'
+import { seedItems, seedPeople, seedDocs } from '../core/seed'
 
 /** Сколько миллисекунд висит плашка «Отменить». */
 const TOAST_MS = 7000
@@ -40,6 +41,8 @@ export interface Engine {
   trashed: Item[]
   /** Необработанные записи «Входящих» (свежие сверху). */
   inbox: Item[]
+  /** Все документы (карточки с полями). */
+  docs: Doc[]
   /** Весь журнал операций (для истории пункта). */
   ops: Op[]
   /** Люди с ролями (команда/исполнитель). */
@@ -54,6 +57,14 @@ export interface Engine {
   restore(id: string): void
   /** Поправить поля пункта (заголовок, владелец, проект, срок, вид). */
   edit(id: string, patch: EditPatch): void
+  /** Привязать существующий документ к пункту. */
+  attachDoc(itemId: string, docId: string): void
+  /** Создать документ и сразу привязать к пункту. */
+  createAndAttachDoc(itemId: string, input: DocInput): void
+  /** Отвязать документ от пункта (сам документ остаётся). */
+  detachDoc(itemId: string, docId: string): void
+  /** Создать пункт «Отработать <номер>» из непривязанного документа. */
+  createFromDoc(docId: string): void
   /** Добавить комментарий в историю пункта. */
   addComment(id: string, text: string): void
   /** Отметка «напомнил» — запись в историю (для «жду от кого-то»). */
@@ -79,6 +90,18 @@ const OP_LABELS: Record<OpType, string> = {
   comment: 'Комментарий добавлен',
   remind: 'Отмечено: напомнил',
   setRole: 'Роль изменена',
+  attachDoc: 'Документ привязан',
+  detachDoc: 'Документ отвязан',
+}
+
+/** Поля нового документа (ввод из формы «Привязать документ»). */
+export interface DocInput {
+  docType: string
+  number: string
+  docDate?: number
+  correspondent?: string
+  description?: string
+  controlAt?: number
 }
 
 export function EngineProvider({
@@ -94,6 +117,7 @@ export function EngineProvider({
   const [items, setItems] = useState<Item[]>([])
   const [ops, setOps] = useState<Op[]>([])
   const [people, setPeople] = useState<Person[]>([])
+  const [docs, setDocs] = useState<Doc[]>([])
   const [pending, setPending] = useState<Pending | null>(null)
   const toastTimer = useRef<number | null>(null)
 
@@ -123,11 +147,25 @@ export function EngineProvider({
         loadedPeople = seedPeople()
         for (const p of loadedPeople) await store.putPerson(p)
       }
+      let loadedDocs = await store.allDocs()
+      // Демо-документы сеем только на свежей базе (вместе с демо-пунктами).
+      if (loadedDocs.length === 0 && loaded.some((it) => it.id === 'seed-6')) {
+        loadedDocs = seedDocs(now())
+        for (const d of loadedDocs) await store.putDoc(d)
+        // Привязка демо-договора к демо-пункту «Договор с подрядчиком».
+        const seed6 = loaded.find((it) => it.id === 'seed-6')
+        if (seed6 && !(seed6.docIds ?? []).length) {
+          const linked = { ...seed6, docIds: ['seed-doc-1'] }
+          await store.putItem(linked)
+          loaded = loaded.map((it) => (it.id === 'seed-6' ? linked : it))
+        }
+      }
       const loadedOps = await store.allOps()
       if (!alive) return
       setItems(loaded)
       setOps(loadedOps)
       setPeople(loadedPeople)
+      setDocs(loadedDocs)
       setReady(true)
     })()
     return () => {
@@ -260,6 +298,95 @@ export function EngineProvider({
     void commit('edit', before, after)
   }
 
+  /** Привязать существующий документ к пункту. */
+  function attachDoc(itemId: string, docId: string) {
+    const before = items.find((it) => it.id === itemId)
+    const doc = docs.find((d) => d.id === docId)
+    if (!before || !doc) return
+    if ((before.docIds ?? []).includes(docId)) return
+    const after: Item = {
+      ...before,
+      docIds: [...(before.docIds ?? []), docId],
+      updatedAt: now(),
+    }
+    void commit('attachDoc', before, after, docLabel(doc))
+  }
+
+  /** Создать документ и сразу привязать к пункту — одна операция, один Undo. */
+  function createAndAttachDoc(itemId: string, input: DocInput) {
+    const before = items.find((it) => it.id === itemId)
+    if (!before) return
+    const t = now()
+    const doc: Doc = {
+      id: newId(),
+      docType: input.docType.trim() || 'документ',
+      number: input.number.trim(),
+      docDate: input.docDate,
+      correspondent: input.correspondent?.trim() || undefined,
+      description: input.description?.trim() || undefined,
+      controlAt: input.controlAt,
+      createdAt: t,
+      updatedAt: t,
+    }
+    const after: Item = {
+      ...before,
+      docIds: [...(before.docIds ?? []), doc.id],
+      updatedAt: t,
+    }
+    const op: Op = {
+      id: newId(),
+      ts: t,
+      type: 'attachDoc',
+      itemId,
+      before,
+      after,
+      text: docLabel(doc),
+      docAfter: doc, // Undo удалит и созданный документ
+    }
+    ;(async () => {
+      await store.putDoc(doc)
+      await store.putItem(after)
+      await store.putOp(op)
+      setDocs((prev) => [...prev, doc])
+      applySnapshot(itemId, after)
+      setOps((prev) => [...prev, op])
+      setPending({ op, label: OP_LABELS.attachDoc })
+      scheduleToastHide()
+    })()
+  }
+
+  /** Отвязать документ от пункта (сам документ остаётся). */
+  function detachDoc(itemId: string, docId: string) {
+    const before = items.find((it) => it.id === itemId)
+    const doc = docs.find((d) => d.id === docId)
+    if (!before || !(before.docIds ?? []).includes(docId)) return
+    const after: Item = {
+      ...before,
+      docIds: (before.docIds ?? []).filter((id) => id !== docId),
+      updatedAt: now(),
+    }
+    void commit('detachDoc', before, after, doc ? docLabel(doc) : undefined)
+  }
+
+  /** Создать пункт «Отработать <номер>» из непривязанного документа. */
+  function createFromDoc(docId: string) {
+    const doc = docs.find((d) => d.id === docId)
+    if (!doc) return
+    const t = now()
+    const item: Item = {
+      id: newId(),
+      kind: 'mine',
+      title: `Отработать ${docLabel(doc)}`,
+      who: doc.correspondent,
+      dueAt: doc.controlAt, // срок = контрольный
+      status: 'open',
+      docIds: [docId],
+      createdAt: t,
+      updatedAt: t,
+    }
+    void commit('create', null, item)
+  }
+
   /** Добавить комментарий в историю пункта (пункт не меняется). */
   function addComment(id: string, text: string) {
     const item = items.find((it) => it.id === id)
@@ -326,6 +453,12 @@ export function EngineProvider({
         if (before) await store.putItem(before)
         else await store.removeItem(id)
         applySnapshot(id, before)
+        // Привязка создала документ — убираем и его.
+        if (op.type === 'attachDoc' && op.docAfter) {
+          const docId = op.docAfter.id
+          await store.removeDoc(docId)
+          setDocs((prev) => prev.filter((d) => d.id !== docId))
+        }
       }
       await store.putOp(undoneOp)
       setOps((prev) => prev.map((o) => (o.id === undoneOp.id ? undoneOp : o)))
@@ -354,6 +487,7 @@ export function EngineProvider({
     items: active,
     trashed,
     inbox,
+    docs,
     ops,
     people,
     pending,
@@ -363,6 +497,10 @@ export function EngineProvider({
     trash,
     restore,
     edit,
+    attachDoc,
+    createAndAttachDoc,
+    detachDoc,
+    createFromDoc,
     addComment,
     markReminded,
     setRole,
