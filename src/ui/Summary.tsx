@@ -48,6 +48,12 @@ export function Summary({ onOpen }: { onOpen: (id: string) => void }) {
           </section>
         ))
       )}
+
+      {summary.snoozed > 0 && (
+        <div className="snoozed-note">
+          {summary.snoozed} отложено — вернётся в срок.
+        </div>
+      )}
     </>
   )
 }

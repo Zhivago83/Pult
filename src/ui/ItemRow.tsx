@@ -29,6 +29,9 @@ export function ItemRow({
         ? 'пора'
         : formatDateShort(item.nextTouchAt)
       : ''
+  const snoozed = item.snoozedUntil != null && item.snoozedUntil > now
+    ? formatDateShort(item.snoozedUntil)
+    : ''
 
   return (
     <div className={`row${closing ? ' row--closing' : ''}`}>
@@ -39,12 +42,13 @@ export function ItemRow({
       />
       <button className="row__body" onClick={() => onOpen(item.id)}>
         <div className="row__title">{item.title}</div>
-        {(item.who || item.project || due || touch) && (
+        {(item.who || item.project || due || touch || snoozed) && (
           <div className="row__meta data">
             {item.who && <span className="row__who">{item.who}</span>}
             {item.project && <span className="row__project">{item.project}</span>}
             {due && <span className={`row__due${hot ? ' row__due--hot' : ''}`}>{due}</span>}
             {touch && <span className="row__touch">{touch}</span>}
+            {snoozed && <span className="row__snooze">{snoozed}</span>}
           </div>
         )}
       </button>

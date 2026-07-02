@@ -339,6 +339,13 @@ button {
   content: '↻ ';
   color: var(--muted);
 }
+.row__snooze {
+  color: var(--muted);
+}
+.row__snooze::before {
+  content: '⏸ ';
+  color: var(--muted);
+}
 .row__due {
   color: var(--muted);
 }
@@ -362,6 +369,14 @@ button {
   .row__trash {
     opacity: 0.6;
   }
+}
+
+/* Строка-итог «отложено» под секциями Сводки */
+.snoozed-note {
+  margin-top: 8px;
+  font-size: 12.5px;
+  color: var(--muted);
+  font-family: var(--font-data);
 }
 
 /* ── Спокойный пустой экран ─────────────────────────────── */

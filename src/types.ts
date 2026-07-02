@@ -71,6 +71,8 @@ export interface Item {
   nextTouchAt?: number
   /** Повтор: при закрытии создаётся следующий такой же пункт. */
   repeat?: Repeat
+  /** Отложено: скрыт из Сводки до этого момента, потом вернётся сам. */
+  snoozedUntil?: number
   status: Status
   /** Когда закрыт. */
   closedAt?: number
