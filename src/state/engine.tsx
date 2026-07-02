@@ -106,6 +106,18 @@ export function EngineProvider({
       if (loaded.length === 0) {
         loaded = seedItems(now())
         for (const it of loaded) await store.putItem(it)
+      } else {
+        // Ремонт данных: из-за старой ошибки в демо-наборе дата создания
+        // могла сохраниться как 1970 год. Чиним тихо, один раз.
+        const SANE = Date.UTC(2000, 0, 1)
+        const repaired: Item[] = []
+        loaded = loaded.map((it) => {
+          if (it.createdAt >= SANE) return it
+          const fixed = { ...it, createdAt: it.updatedAt >= SANE ? it.updatedAt : now() }
+          repaired.push(fixed)
+          return fixed
+        })
+        for (const it of repaired) await store.putItem(it)
       }
       let loadedPeople = await store.allPeople()
       if (loadedPeople.length === 0) {

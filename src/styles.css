@@ -270,11 +270,16 @@ button {
 
 .row__trash {
   flex: none;
-  font-size: 12px;
+  font-size: 14px;
+  line-height: 1;
+  padding: 6px 4px; /* удобная площадь для тапа */
   color: var(--muted);
   opacity: 0;
   transition: opacity 0.15s ease;
   align-self: center;
+}
+.row__trash:hover {
+  color: var(--ink);
 }
 .row:hover .row__trash {
   opacity: 1;
