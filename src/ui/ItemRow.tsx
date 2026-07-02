@@ -1,6 +1,6 @@
 import type { VisibleItem } from '../core/derive'
 import { formatDue, formatDateShort } from '../core/time'
-import { SOON_MS } from '../core/constants'
+import { thresholds } from '../core/settings'
 
 /**
  * Строка пункта: слева кружок-кольцо (тап — закрыть), справа текст
@@ -20,7 +20,7 @@ export function ItemRow({
   onOpen: (id: string) => void
 }) {
   const { item, closing } = vi
-  const hot = item.dueAt != null && item.dueAt <= now + SOON_MS
+  const hot = item.dueAt != null && item.dueAt <= now + thresholds().soonMs
   const due = formatDue(item.dueAt, now)
   // Тихая пометка следующего касания у ожиданий (графит, не красный).
   const touch =

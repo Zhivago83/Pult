@@ -8,6 +8,7 @@
 
 import { openDB, type IDBPDatabase } from 'idb'
 import type { DayNote, Item, Op, Person } from '../types'
+import type { Settings } from '../core/settings'
 
 /** Контракт хранилища — то, что нужно ядру приложения. */
 export interface Store {
@@ -21,6 +22,8 @@ export interface Store {
   removePerson(name: string): Promise<void>
   getDayNote(): Promise<DayNote | undefined>
   putDayNote(note: DayNote): Promise<void>
+  getSettings(): Promise<Settings | undefined>
+  putSettings(settings: Settings): Promise<void>
   /** Полностью очистить все данные (для импорта бэкапа). */
   clearAll(): Promise<void>
 }
@@ -32,6 +35,7 @@ const OPS = 'ops'
 const PEOPLE = 'people'
 const SETTINGS = 'settings'
 const DAY_NOTE_KEY = 'dayNote'
+const SETTINGS_KEY = 'appSettings'
 
 let dbPromise: Promise<IDBPDatabase> | null = null
 
@@ -94,6 +98,17 @@ export const idbStore: Store = {
   },
   async putDayNote(note) {
     await (await db()).put(SETTINGS, { key: DAY_NOTE_KEY, ...note })
+  },
+  async getSettings() {
+    const row = (await (await db()).get(SETTINGS, SETTINGS_KEY)) as
+      | (Settings & { key: string })
+      | undefined
+    if (!row) return undefined
+    const { key: _key, ...settings } = row
+    return settings
+  },
+  async putSettings(settings) {
+    await (await db()).put(SETTINGS, { key: SETTINGS_KEY, ...settings })
   },
   async clearAll() {
     const database = await db()

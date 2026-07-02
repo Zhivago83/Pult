@@ -20,9 +20,15 @@ import type { Backup, DayNote, Item, Kind, Op, OpType, Person, Role } from '../t
 import { idbStore, type Store } from '../store/store'
 import { newId } from '../core/id'
 import { tsToDateInput } from '../core/time'
-import { GRACE_MS, REMIND_SNOOZE_MS, PURGE_AFTER_MS } from '../core/constants'
+import { REMIND_SNOOZE_MS, PURGE_AFTER_MS } from '../core/constants'
 import { seedItems, seedPeople } from '../core/seed'
 import { spawnNext } from '../core/recur'
+import {
+  type Settings,
+  DEFAULT_SETTINGS,
+  applySettings,
+  thresholds,
+} from '../core/settings'
 
 /** Сколько миллисекунд висит плашка «Отменить». */
 const TOAST_MS = 7000
@@ -64,6 +70,12 @@ export interface Engine {
   dayNote: string
   /** Изменить заметку дня. */
   setDayNote(text: string): void
+  /** Текущие настройки (пороги, период благодати). */
+  settings: Settings
+  /** Изменить настройки. */
+  updateSettings(patch: Partial<Settings>): void
+  /** Сбросить все данные к демо-набору. */
+  resetDemo(): Promise<void>
   /** Найти пункт по id среди всех (в работе / выполнено / корзина). */
   findItem(id: string): Item | undefined
   /** Собрать полный снимок данных (для скачивания). */
@@ -125,6 +137,7 @@ export function EngineProvider({
   const [ops, setOps] = useState<Op[]>([])
   const [people, setPeople] = useState<Person[]>([])
   const [note, setNote] = useState<DayNote | null>(null)
+  const [settings, setSettings] = useState<Settings>(DEFAULT_SETTINGS)
   const [pending, setPending] = useState<Pending | null>(null)
   const toastTimer = useRef<number | null>(null)
 
@@ -155,11 +168,14 @@ export function EngineProvider({
       }
       const loadedOps = await store.allOps()
       const loadedNote = await store.getDayNote()
+      const loadedSettings = (await store.getSettings()) ?? DEFAULT_SETTINGS
+      applySettings(loadedSettings) // активируем пороги до первого рендера
       if (!alive) return
       setItems(loaded)
       setOps(loadedOps)
       setPeople(loadedPeople)
       setNote(loadedNote ?? null)
+      setSettings(loadedSettings)
       setReady(true)
     })()
     return () => {
@@ -221,7 +237,7 @@ export function EngineProvider({
       ...before,
       status: 'done',
       closedAt: t,
-      graceUntil: t + GRACE_MS, // period благодати: 6 секунд зачёркнут
+      graceUntil: t + thresholds().graceMs, // период благодати (из настроек)
       updatedAt: t,
     }
     // Повторяющийся — сразу создаём следующий такой же пункт.
@@ -432,6 +448,31 @@ export function EngineProvider({
     })()
   }
 
+  /** Изменить настройки: применяем пороги и сохраняем. */
+  function updateSettings(patch: Partial<Settings>) {
+    const next = { ...settings, ...patch }
+    applySettings(next)
+    setSettings(next)
+    void store.putSettings(next)
+  }
+
+  /** Сбросить все данные к демо-набору (настройки не трогаем). */
+  async function resetDemo() {
+    const t = now()
+    const seedItemsList = seedItems(t)
+    const seedPeopleList = seedPeople()
+    await store.clearAll()
+    for (const it of seedItemsList) await store.putItem(it)
+    for (const p of seedPeopleList) await store.putPerson(p)
+    await store.putSettings(settings) // сохранить текущие настройки обратно
+    setItems(seedItemsList)
+    setPeople(seedPeopleList)
+    setOps([])
+    setNote(null)
+    setPending(null)
+    if (toastTimer.current != null) window.clearTimeout(toastTimer.current)
+  }
+
   /** Собрать полный снимок всех данных (авторитетно — из хранилища). */
   async function exportData(): Promise<Backup> {
     const [i, o, p, n] = await Promise.all([
@@ -528,6 +569,9 @@ export function EngineProvider({
     people,
     dayNote,
     setDayNote,
+    settings,
+    updateSettings,
+    resetDemo,
     findItem: (id: string) => items.find((it) => it.id === id),
     exportData,
     importData,

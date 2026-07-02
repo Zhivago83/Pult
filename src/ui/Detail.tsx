@@ -3,7 +3,7 @@ import { useEngine } from '../state/engine'
 import { buildTimeline } from '../core/timeline'
 import { formatDateShort, formatDateTime, dateInputToTs, tsToDateInput } from '../core/time'
 import { repeatShort } from '../core/recur'
-import { SOON_MS } from '../core/constants'
+import { thresholds } from '../core/settings'
 import type { Repeat } from '../types'
 import { useNow } from './useNow'
 
@@ -38,7 +38,7 @@ export function Detail({ id, onClose }: { id: string; onClose: () => void }) {
   }, [item, onClose])
   if (!item) return null
 
-  const hot = item.dueAt != null && item.dueAt <= now + SOON_MS
+  const hot = item.dueAt != null && item.dueAt <= now + thresholds().soonMs
 
   function startEdit(field: Field) {
     if (!item) return
