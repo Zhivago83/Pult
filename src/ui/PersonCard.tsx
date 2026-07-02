@@ -2,7 +2,7 @@ import { useMemo } from 'react'
 import { useEngine } from '../state/engine'
 import { roleOf, personReliability, personWaitingItems, reliabilityWords } from '../core/people'
 import { formatDue } from '../core/time'
-import { thresholds } from '../core/settings'
+import { SOON_MS } from '../core/constants'
 import { useNow } from './useNow'
 
 /**
@@ -67,7 +67,7 @@ export function PersonCard({
         ) : (
           <div className="person__list">
             {waiting.map((it) => {
-              const hot = it.dueAt != null && it.dueAt <= now + thresholds().soonMs
+              const hot = it.dueAt != null && it.dueAt <= now + SOON_MS
               const due = formatDue(it.dueAt, now)
               return (
                 <button className="row" key={it.id} onClick={() => onOpenItem(it.id)}>

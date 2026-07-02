@@ -7,8 +7,7 @@
 // ─────────────────────────────────────────────────────────────
 
 import { openDB, type IDBPDatabase } from 'idb'
-import type { DayNote, Item, Op, Person } from '../types'
-import type { Settings } from '../core/settings'
+import type { Item, Op, Person } from '../types'
 
 /** Контракт хранилища — то, что нужно ядру приложения. */
 export interface Store {
@@ -20,22 +19,17 @@ export interface Store {
   allPeople(): Promise<Person[]>
   putPerson(person: Person): Promise<void>
   removePerson(name: string): Promise<void>
-  getDayNote(): Promise<DayNote | undefined>
-  putDayNote(note: DayNote): Promise<void>
-  getSettings(): Promise<Settings | undefined>
-  putSettings(settings: Settings): Promise<void>
-  /** Полностью очистить все данные (для импорта бэкапа). */
-  clearAll(): Promise<void>
 }
 
 const DB_NAME = 'pult'
-const DB_VERSION = 3
+// Схема — как в версии 2 (items/ops/people). Номер держим выше прежних
+// версий, чтобы на устройствах, где успела появиться база v3, открытие
+// не падало с ошибкой понижения версии. Лишние сторы (если есть) просто
+// не используются.
+const DB_VERSION = 4
 const ITEMS = 'items'
 const OPS = 'ops'
 const PEOPLE = 'people'
-const SETTINGS = 'settings'
-const DAY_NOTE_KEY = 'dayNote'
-const SETTINGS_KEY = 'appSettings'
 
 let dbPromise: Promise<IDBPDatabase> | null = null
 
@@ -53,10 +47,6 @@ function db(): Promise<IDBPDatabase> {
         // Добавлено во 2-й версии: люди (роль команда/исполнитель).
         if (!database.objectStoreNames.contains(PEOPLE)) {
           database.createObjectStore(PEOPLE, { keyPath: 'name' })
-        }
-        // Добавлено в 3-й версии: настройки (например, заметка дня).
-        if (!database.objectStoreNames.contains(SETTINGS)) {
-          database.createObjectStore(SETTINGS, { keyPath: 'key' })
         }
       },
     })
@@ -89,34 +79,5 @@ export const idbStore: Store = {
   },
   async removePerson(name) {
     await (await db()).delete(PEOPLE, name)
-  },
-  async getDayNote() {
-    const row = (await (await db()).get(SETTINGS, DAY_NOTE_KEY)) as
-      | (DayNote & { key: string })
-      | undefined
-    return row ? { text: row.text, day: row.day } : undefined
-  },
-  async putDayNote(note) {
-    await (await db()).put(SETTINGS, { key: DAY_NOTE_KEY, ...note })
-  },
-  async getSettings() {
-    const row = (await (await db()).get(SETTINGS, SETTINGS_KEY)) as
-      | (Settings & { key: string })
-      | undefined
-    if (!row) return undefined
-    const { key: _key, ...settings } = row
-    return settings
-  },
-  async putSettings(settings) {
-    await (await db()).put(SETTINGS, { key: SETTINGS_KEY, ...settings })
-  },
-  async clearAll() {
-    const database = await db()
-    await Promise.all([
-      database.clear(ITEMS),
-      database.clear(OPS),
-      database.clear(PEOPLE),
-      database.clear(SETTINGS),
-    ])
   },
 }

@@ -23,7 +23,6 @@ export function seedItems(now: number): Item[] {
       id: 'seed-1',
       kind: 'mine',
       title: 'Согласовать бюджет отдела на квартал',
-      project: 'Бюджет',
       dueAt: now - 6 * HOUR, // просрочено → «горит» (красное)
       createdAt: 3 * DAY,
     }),
@@ -32,18 +31,14 @@ export function seedItems(now: number): Item[] {
       kind: 'waiting',
       title: 'Отчёт по продажам за июнь',
       who: 'Марина',
-      project: 'Отчётность',
-      dueAt: now + 2 * DAY,
-      nextTouchAt: now + 3 * DAY, // касание запланировано, пинать пока рано
+      dueAt: now + 2 * DAY, // ожидание на подходе → «пора пнуть»
       createdAt: 4 * DAY,
     }),
     base({
       id: 'seed-3',
       kind: 'mine',
       title: 'Подготовить план найма на III квартал',
-      project: 'Найм',
-      dueAt: now + 5 * DAY,
-      snoozedUntil: now + 2 * DAY, // отложено: вернётся в Сводку через 2 дня
+      dueAt: now + 5 * DAY, // спокойное «моё»
       createdAt: 1 * DAY,
     }),
     base({
@@ -51,15 +46,14 @@ export function seedItems(now: number): Item[] {
       kind: 'waiting',
       title: 'Правки в презентацию для правления',
       who: 'Игорь',
-      // без срока, но пора коснуться → попадёт в «Пора пнуть»
-      nextTouchAt: now - 2 * HOUR,
+      // без срока, свежее → спокойное «Ожидания»
       createdAt: 4 * HOUR,
     }),
     base({
       id: 'seed-5',
-      kind: 'mine',
+      kind: 'waiting',
       title: 'Смета на ремонт офиса',
-      project: 'Ремонт офиса',
+      who: 'Марина',
       dueAt: now + 6 * DAY,
       createdAt: 2 * DAY,
     }),
@@ -68,17 +62,8 @@ export function seedItems(now: number): Item[] {
       kind: 'waiting',
       title: 'Договор с подрядчиком',
       who: 'Пётр',
-      project: 'Ремонт офиса',
       dueAt: now - 1 * DAY, // просрочено → у Петра «срывал срок» (красное)
       createdAt: 5 * DAY,
-    }),
-    base({
-      id: 'seed-7',
-      kind: 'mine',
-      title: 'Планёрка отдела',
-      repeat: 'weekly', // закрыл — следующая появится сама
-      dueAt: now + 1 * DAY,
-      createdAt: 1 * DAY,
     }),
   ]
 }

@@ -2,19 +2,10 @@ import { useEffect, useMemo, useState } from 'react'
 import { useEngine } from '../state/engine'
 import { buildTimeline } from '../core/timeline'
 import { formatDateShort, formatDateTime, dateInputToTs, tsToDateInput } from '../core/time'
-import { repeatShort } from '../core/recur'
-import { thresholds } from '../core/settings'
-import type { Repeat } from '../types'
+import { SOON_MS } from '../core/constants'
 import { useNow } from './useNow'
 
-type Field = 'title' | 'who' | 'project' | 'due' | 'touch' | 'repeat' | 'snooze'
-
-const REPEAT_OPTIONS: Array<{ value: Repeat | undefined; label: string }> = [
-  { value: undefined, label: 'нет' },
-  { value: 'daily', label: 'день' },
-  { value: 'weekly', label: 'неделя' },
-  { value: 'monthly', label: 'месяц' },
-]
+type Field = 'title' | 'who' | 'project' | 'due'
 
 /**
  * Карточка пункта: заголовок и «пилюли» правятся тапом (только поля
@@ -23,9 +14,9 @@ const REPEAT_OPTIONS: Array<{ value: Repeat | undefined; label: string }> = [
  * На телефоне — шторка снизу, на широком экране — панель справа.
  */
 export function Detail({ id, onClose }: { id: string; onClose: () => void }) {
-  const { findItem, ops, edit, addComment, markReminded, close } = useEngine()
+  const { items, ops, edit, addComment, markReminded, close } = useEngine()
   const now = useNow()
-  const item = findItem(id)
+  const item = items.find((it) => it.id === id)
   const timeline = useMemo(() => (item ? buildTimeline(ops, item) : []), [ops, item])
 
   const [editing, setEditing] = useState<Field | null>(null)
@@ -38,7 +29,7 @@ export function Detail({ id, onClose }: { id: string; onClose: () => void }) {
   }, [item, onClose])
   if (!item) return null
 
-  const hot = item.dueAt != null && item.dueAt <= now + thresholds().soonMs
+  const hot = item.dueAt != null && item.dueAt <= now + SOON_MS
 
   function startEdit(field: Field) {
     if (!item) return
@@ -47,8 +38,6 @@ export function Detail({ id, onClose }: { id: string; onClose: () => void }) {
     else if (field === 'who') setDraft(item.who ?? '')
     else if (field === 'project') setDraft(item.project ?? '')
     else if (field === 'due') setDraft(tsToDateInput(item.dueAt))
-    else if (field === 'touch') setDraft(tsToDateInput(item.nextTouchAt))
-    else if (field === 'snooze') setDraft(tsToDateInput(item.snoozedUntil))
   }
 
   function saveEdit() {
@@ -57,8 +46,6 @@ export function Detail({ id, onClose }: { id: string; onClose: () => void }) {
     else if (editing === 'who') edit(id, { who: draft })
     else if (editing === 'project') edit(id, { project: draft })
     else if (editing === 'due') edit(id, { dueAt: dateInputToTs(draft) })
-    else if (editing === 'touch') edit(id, { nextTouchAt: dateInputToTs(draft) })
-    else if (editing === 'snooze') edit(id, { snoozedUntil: dateInputToTs(draft) })
     setEditing(null)
   }
 
@@ -66,8 +53,6 @@ export function Detail({ id, onClose }: { id: string; onClose: () => void }) {
     if (editing === 'who') edit(id, { who: '' })
     else if (editing === 'project') edit(id, { project: '' })
     else if (editing === 'due') edit(id, { dueAt: undefined })
-    else if (editing === 'touch') edit(id, { nextTouchAt: undefined })
-    else if (editing === 'snooze') edit(id, { snoozedUntil: undefined })
     setEditing(null)
   }
 
@@ -83,9 +68,6 @@ export function Detail({ id, onClose }: { id: string; onClose: () => void }) {
     who: 'Владелец',
     project: 'Проект',
     due: 'Срок',
-    touch: 'Напомнить',
-    repeat: 'Повтор',
-    snooze: 'Отложить до',
   }
 
   return (
@@ -133,52 +115,13 @@ export function Detail({ id, onClose }: { id: string; onClose: () => void }) {
               {item.dueAt != null ? formatDateShort(item.dueAt) : '—'}
             </span>
           </button>
-          {item.kind === 'waiting' && (
-            <button className="pill" onClick={() => startEdit('touch')}>
-              <span className="pill__key">напомнить</span>
-              <span className="pill__val data">
-                {item.nextTouchAt != null ? formatDateShort(item.nextTouchAt) : '—'}
-              </span>
-            </button>
-          )}
-          <button className="pill" onClick={() => startEdit('repeat')}>
-            <span className="pill__key">повтор</span>
-            <span className="pill__val data">{repeatShort(item.repeat)}</span>
-          </button>
-          <button className="pill" onClick={() => startEdit('snooze')}>
-            <span className="pill__key">отложить</span>
-            <span className="pill__val data">
-              {item.snoozedUntil != null ? formatDateShort(item.snoozedUntil) : '—'}
-            </span>
-          </button>
         </div>
 
-        {/* Редактор повтора — выбор из вариантов */}
-        {editing === 'repeat' && (
-          <div className="editor">
-            <label className="editor__label">Повтор</label>
-            <div className="repeat-options">
-              {REPEAT_OPTIONS.map((o) => (
-                <button
-                  key={o.label}
-                  className={(item.repeat ?? undefined) === o.value ? 'is-active' : ''}
-                  onClick={() => {
-                    edit(id, { repeat: o.value })
-                    setEditing(null)
-                  }}
-                >
-                  {o.label}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Инлайн-редактор текстового / датного поля */}
-        {editing && editing !== 'title' && editing !== 'repeat' && (
+        {/* Инлайн-редактор выбранного поля */}
+        {editing && editing !== 'title' && (
           <div className="editor">
             <label className="editor__label">{fieldLabel[editing]}</label>
-            {editing === 'due' || editing === 'touch' || editing === 'snooze' ? (
+            {editing === 'due' ? (
               <input
                 className="editor__input data"
                 type="date"

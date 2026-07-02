@@ -1,6 +1,6 @@
 import type { VisibleItem } from '../core/derive'
-import { formatDue, formatDateShort } from '../core/time'
-import { thresholds } from '../core/settings'
+import { formatDue } from '../core/time'
+import { SOON_MS } from '../core/constants'
 
 /**
  * Строка пункта: слева кружок-кольцо (тап — закрыть), справа текст
@@ -20,18 +20,8 @@ export function ItemRow({
   onOpen: (id: string) => void
 }) {
   const { item, closing } = vi
-  const hot = item.dueAt != null && item.dueAt <= now + thresholds().soonMs
+  const hot = item.dueAt != null && item.dueAt <= now + SOON_MS
   const due = formatDue(item.dueAt, now)
-  // Тихая пометка следующего касания у ожиданий (графит, не красный).
-  const touch =
-    item.kind === 'waiting' && item.nextTouchAt != null
-      ? item.nextTouchAt <= now
-        ? 'пора'
-        : formatDateShort(item.nextTouchAt)
-      : ''
-  const snoozed = item.snoozedUntil != null && item.snoozedUntil > now
-    ? formatDateShort(item.snoozedUntil)
-    : ''
 
   return (
     <div className={`row${closing ? ' row--closing' : ''}`}>
@@ -42,13 +32,11 @@ export function ItemRow({
       />
       <button className="row__body" onClick={() => onOpen(item.id)}>
         <div className="row__title">{item.title}</div>
-        {(item.who || item.project || due || touch || snoozed) && (
+        {(item.who || item.project || due) && (
           <div className="row__meta data">
             {item.who && <span className="row__who">{item.who}</span>}
             {item.project && <span className="row__project">{item.project}</span>}
             {due && <span className={`row__due${hot ? ' row__due--hot' : ''}`}>{due}</span>}
-            {touch && <span className="row__touch">{touch}</span>}
-            {snoozed && <span className="row__snooze">{snoozed}</span>}
           </div>
         )}
       </button>

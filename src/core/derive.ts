@@ -6,7 +6,7 @@
 // ─────────────────────────────────────────────────────────────
 
 import type { Item } from '../types'
-import { thresholds } from './settings'
+import { SOON_MS, NUDGE_MS, STALE_MS } from './constants'
 
 /** Идентификаторы секций Сводки в порядке тревожности (сверху вниз). */
 export type SectionId = 'burning' | 'nudge' | 'mine' | 'waiting'
@@ -34,26 +34,18 @@ export interface Thermometer {
 export interface Summary {
   sections: Section[]
   thermometer: Thermometer
-  /** Сколько пунктов отложено (скрыто до даты). */
-  snoozed: number
 }
 
 /** «Горит»: есть срок и он уже прошёл или наступит в ближайшие часы. */
 function isBurning(item: Item, now: number): boolean {
-  return item.dueAt != null && item.dueAt <= now + thresholds().soonMs
+  return item.dueAt != null && item.dueAt <= now + SOON_MS
 }
 
-/**
- * «Пора пнуть»: пора коснуться снова.
- *  • если задана дата следующего касания — она уже наступила;
- *  • иначе — ожидание на подходе к сроку либо давно висит без срока.
- */
+/** «Пора пнуть»: ожидание на подходе к сроку либо давно висит без срока. */
 function isNudge(item: Item, now: number): boolean {
   if (item.kind !== 'waiting') return false
-  if (item.nextTouchAt != null) return item.nextTouchAt <= now
-  const t = thresholds()
-  if (item.dueAt != null) return item.dueAt <= now + t.nudgeMs
-  return now - item.createdAt >= t.staleMs
+  if (item.dueAt != null) return item.dueAt <= now + NUDGE_MS
+  return now - item.createdAt >= STALE_MS
 }
 
 /** Виден ли пункт в Сводке: активен или доживает период благодати. */
@@ -90,14 +82,8 @@ export function buildSummary(all: Item[], now: number): Summary {
   let burning = 0
   let waiting = 0
   let mine = 0
-  let snoozed = 0
 
   for (const item of all) {
-    // Отложенное скрываем из Сводки, но считаем — вернётся, когда придёт срок.
-    if (item.status === 'open' && item.snoozedUntil != null && item.snoozedUntil > now) {
-      snoozed++
-      continue
-    }
     if (!isVisible(item, now)) continue
     const closing = item.status === 'done'
     const vi: VisibleItem = { item, closing }
@@ -126,6 +112,5 @@ export function buildSummary(all: Item[], now: number): Summary {
   return {
     sections,
     thermometer: { burning, waiting, mine, total: burning + waiting + mine },
-    snoozed,
   }
 }

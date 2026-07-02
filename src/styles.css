@@ -95,17 +95,12 @@ button {
   font-size: 15px;
   font-weight: 600;
   letter-spacing: 0.02em;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 .topbar__actions {
   display: flex;
-  gap: 14px;
+  gap: 18px;
   align-items: center;
-  flex: none;
 }
 
 .linkbtn {
@@ -116,15 +111,11 @@ button {
 .linkbtn:hover {
   color: var(--ink);
 }
-.linkbtn--icon {
-  font-size: 18px;
-  line-height: 1;
-}
 
 /* ── Вкладки: Сводка / Жду ──────────────────────────────── */
 .tabs {
   display: flex;
-  gap: 20px;
+  gap: 22px;
   margin-bottom: 22px;
   border-bottom: 1px solid var(--hairline);
 }
@@ -145,68 +136,6 @@ button {
 /* Красная пометка (горит / срывал срок) — переиспользуемо. */
 .hot {
   color: var(--red);
-}
-
-/* ── Заметка дня ────────────────────────────────────────── */
-.daynote {
-  display: block;
-  width: 100%;
-  text-align: left;
-  background: none;
-  border: none;
-  padding: 0 0 2px;
-  margin-bottom: 18px;
-  font-family: var(--font-text);
-  font-size: 16.5px;
-  line-height: 1.35;
-  color: var(--ink);
-  word-break: break-word;
-}
-.daynote--empty {
-  color: var(--muted);
-}
-.daynote__input {
-  border-bottom: 1px solid var(--ink);
-  outline: none;
-}
-.daynote__input::placeholder {
-  color: var(--muted);
-}
-
-/* ── Подсказки первого запуска ──────────────────────────── */
-.tips {
-  border-top: 1px solid var(--hairline);
-  border-bottom: 1px solid var(--hairline);
-  padding: 14px 0;
-  margin-bottom: 22px;
-}
-.tips__head {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  margin-bottom: 10px;
-  font-size: 12px;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: var(--muted);
-}
-.tips__list {
-  margin: 0;
-  padding: 0;
-  list-style: none;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-.tips__list li {
-  font-size: 13.5px;
-  color: var(--ink);
-  line-height: 1.4;
-}
-.tips__mark {
-  font-family: var(--font-data);
-  color: var(--muted);
-  margin-right: 4px;
 }
 
 /* ── Термометр дня ──────────────────────────────────────── */
@@ -332,20 +261,6 @@ button {
   content: '# ';
   color: var(--muted);
 }
-.row__touch {
-  color: var(--muted);
-}
-.row__touch::before {
-  content: '↻ ';
-  color: var(--muted);
-}
-.row__snooze {
-  color: var(--muted);
-}
-.row__snooze::before {
-  content: '⏸ ';
-  color: var(--muted);
-}
 .row__due {
   color: var(--muted);
 }
@@ -369,14 +284,6 @@ button {
   .row__trash {
     opacity: 0.6;
   }
-}
-
-/* Строка-итог «отложено» под секциями Сводки */
-.snoozed-note {
-  margin-top: 8px;
-  font-size: 12.5px;
-  color: var(--muted);
-  font-family: var(--font-data);
 }
 
 /* ── Спокойный пустой экран ─────────────────────────────── */
@@ -520,17 +427,6 @@ button {
   font-family: var(--font-data);
 }
 
-/* Подсказка умного захвата под полем ввода */
-.capture__hint {
-  margin-top: 8px;
-  font-size: 12.5px;
-  color: var(--ink);
-}
-.capture__hint--muted {
-  color: var(--muted);
-  font-family: var(--font-text);
-}
-
 .sheet__row {
   display: flex;
   gap: 12px;
@@ -564,87 +460,6 @@ button {
   font-size: 14px;
   padding: 20px 0;
   text-align: center;
-}
-.trash-actions {
-  flex: none;
-  display: flex;
-  gap: 14px;
-  align-self: center;
-}
-.linkbtn--danger {
-  color: var(--red);
-}
-.linkbtn--danger:hover {
-  color: var(--red);
-}
-.trash-note {
-  color: var(--muted);
-  font-size: 12px;
-  padding: 12px 0 4px;
-}
-
-/* Правый край строки архива: время закрытия + «вернуть» */
-.archive-side {
-  flex: none;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  align-self: center;
-}
-.archive-time {
-  font-size: 12px;
-  color: var(--muted);
-}
-
-/* Поиск */
-button.row {
-  width: 100%;
-  text-align: left;
-  background: none;
-  font: inherit;
-  color: inherit;
-  cursor: pointer;
-}
-.search__input {
-  flex: 1;
-  min-width: 0;
-  background: none;
-  border: none;
-  font-family: var(--font-text);
-  font-size: 17px;
-  color: var(--ink);
-  padding: 2px 0;
-}
-.search__input:focus {
-  outline: none;
-}
-.search__input::placeholder {
-  color: var(--muted);
-}
-.search__tag {
-  flex: none;
-  align-self: center;
-  font-size: 11px;
-  letter-spacing: 0.04em;
-  color: var(--muted);
-  white-space: nowrap;
-}
-.search__tag--trashed {
-  text-decoration: line-through;
-}
-
-/* «Ещё»: резервная копия */
-.more__row {
-  display: flex;
-  gap: 12px;
-}
-.more__msg {
-  margin-top: 12px;
-  font-size: 13px;
-  color: var(--ink);
-}
-.btn--danger {
-  color: var(--red);
 }
 
 /* ─────────────────────────────────────────────────────────────
@@ -789,25 +604,6 @@ button.row {
   padding: 8px 16px;
   font-size: 13px;
   border-radius: 8px;
-}
-
-/* Варианты повтора — компактные кнопки-«таблетки» */
-.repeat-options {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-.repeat-options button {
-  border: 1px solid var(--hairline);
-  border-radius: 20px;
-  padding: 7px 14px;
-  font-size: 13px;
-  color: var(--muted);
-}
-.repeat-options button.is-active {
-  background: var(--ink);
-  color: var(--paper);
-  border-color: var(--ink);
 }
 
 .detail__action {
