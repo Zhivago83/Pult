@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react'
 import { useEngine } from '../state/engine'
 import { useTheme } from './useTheme'
+import { resetTips } from './useHints'
 import { tsToDateInput } from '../core/time'
 
 /** Вариант выбора для порога. */
@@ -121,6 +122,19 @@ export function Settings({ onClose }: { onClose: () => void }) {
               Консоль
             </button>
           </div>
+        </div>
+
+        <div className="field">
+          <label>Подсказки</label>
+          <button
+            className="btn btn--ghost"
+            onClick={() => {
+              resetTips()
+              setMsg('Подсказки снова появятся в Сводке.')
+            }}
+          >
+            Показать подсказки снова
+          </button>
         </div>
 
         <div className="field">

@@ -13,7 +13,12 @@ export function Projects({ onOpenProject }: { onOpenProject: (name: string) => v
   const rows = useMemo(() => buildProjects(items, now), [items, now])
 
   if (rows.length === 0) {
-    return <div className="empty">Пока нет проектов.</div>
+    return (
+      <div className="empty">
+        Пока нет проектов.
+        <div className="empty__sub">Проект задаётся пилюлей «проект» в карточке пункта.</div>
+      </div>
+    )
   }
 
   return (

@@ -51,7 +51,10 @@ export function Waiting({
 
       {mode === 'list' ? (
         listItems.length === 0 ? (
-          <div className="empty">Нет ожиданий.</div>
+          <div className="empty">
+            Нет ожиданий.
+            <div className="empty__sub">Через ＋ добавьте «Жду от кого-то».</div>
+          </div>
         ) : (
           <section className="section">
             {listItems.map((vi) => (
@@ -67,7 +70,10 @@ export function Waiting({
           </section>
         )
       ) : noPeople ? (
-        <div className="empty">Пока некого ждать.</div>
+        <div className="empty">
+          Пока некого ждать.
+          <div className="empty__sub">Укажите, от кого ждёте, — человек появится здесь.</div>
+        </div>
       ) : (
         <>
           <PeopleGroup title="Команда" rows={groups.team} onOpenPerson={onOpenPerson} />
