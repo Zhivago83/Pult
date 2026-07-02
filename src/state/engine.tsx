@@ -19,6 +19,7 @@ import {
 import type { CalEntry, Doc, Item, Op, OpType, Person, Role } from '../types'
 import { idbStore, type Store } from '../store/store'
 import { newId } from '../core/id'
+import { getDeviceId } from '../core/device'
 import { docLabel } from '../core/docs'
 import { makeIsWorkday } from '../core/calendar'
 import { nextOccurrence } from '../core/repeat'
@@ -135,6 +136,9 @@ export function EngineProvider({
   const [calendar, setCalendar] = useState<CalEntry[]>([])
   const [pending, setPending] = useState<Pending | null>(null)
   const toastTimer = useRef<number | null>(null)
+  // Идентификатор этого устройства — проставляется в каждую новую
+  // операцию журнала (по аналогии с ts через now()).
+  const device = getDeviceId()
 
   // Загрузка из хранилища при старте. Если пусто — засеваем демо-данные.
   useEffect(() => {
@@ -208,7 +212,7 @@ export function EngineProvider({
   /** Записать операцию: сохранить пункт + запись журнала + показать Undo. */
   async function commit(type: OpType, before: Item | null, after: Item | null, text?: string) {
     const itemId = (after ?? before)!.id
-    const op: Op = { id: newId(), ts: now(), type, itemId, before, after, text }
+    const op: Op = { id: newId(), ts: now(), type, itemId, before, after, text, device }
     if (after) await store.putItem(after)
     else await store.removeItem(itemId)
     await store.putOp(op)
@@ -274,7 +278,7 @@ export function EngineProvider({
         }
       }
     }
-    const op: Op = { id: newId(), ts: t, type: 'close', itemId: id, before, after, spawned }
+    const op: Op = { id: newId(), ts: t, type: 'close', itemId: id, before, after, spawned, device }
     ;(async () => {
       await store.putItem(after)
       if (spawned) await store.putItem(spawned)
@@ -392,6 +396,7 @@ export function EngineProvider({
       after,
       text: docLabel(doc),
       docAfter: doc, // Undo удалит и созданный документ
+      device,
     }
     ;(async () => {
       await store.putDoc(doc)
@@ -452,6 +457,7 @@ export function EngineProvider({
       after: null,
       calBefore: before,
       calAfter: after,
+      device,
     }
     ;(async () => {
       await store.putCal(after)
@@ -476,6 +482,7 @@ export function EngineProvider({
       after: null,
       calBefore: before,
       calAfter: null,
+      device,
     }
     ;(async () => {
       await store.removeCal(date)
@@ -524,6 +531,7 @@ export function EngineProvider({
       after: null,
       personBefore: before,
       personAfter: after,
+      device,
     }
     ;(async () => {
       await store.putPerson(after)
