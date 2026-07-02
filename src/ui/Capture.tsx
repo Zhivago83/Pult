@@ -1,82 +1,37 @@
 import { useState } from 'react'
-import { useEngine, type CaptureInput } from '../state/engine'
-import type { Kind } from '../types'
+import { useEngine } from '../state/engine'
 
-/** Дата из поля <input type="date"> → метка времени (конец того дня). */
-function dateToTs(value: string): number | undefined {
-  if (!value) return undefined
-  const d = new Date(value + 'T18:00:00') // условный «конец рабочего дня»
-  return Number.isNaN(d.getTime()) ? undefined : d.getTime()
-}
-
-/** Лист захвата: создать пункт «моё» или «жду от кого-то». */
+/**
+ * Быстрый захват: один ввод текста — запись сразу ложится во «Входящие».
+ * Разбор (вид, владелец, срок, проект) делается позже, на экране Входящих.
+ */
 export function Capture({ onClose }: { onClose: () => void }) {
   const { capture } = useEngine()
-  const [kind, setKind] = useState<Kind>('mine')
-  const [title, setTitle] = useState('')
-  const [who, setWho] = useState('')
-  const [due, setDue] = useState('')
+  const [text, setText] = useState('')
 
-  const canSave = title.trim().length > 0
+  const canSave = text.trim().length > 0
 
   function save() {
     if (!canSave) return
-    const input: CaptureInput = {
-      kind,
-      title,
-      who: kind === 'waiting' ? who : undefined,
-      dueAt: dateToTs(due),
-    }
-    capture(input)
+    capture(text)
     onClose()
   }
 
   return (
     <div className="sheet-backdrop" onClick={onClose}>
       <div className="sheet" onClick={(e) => e.stopPropagation()}>
-        <div className="sheet__title">Новый пункт</div>
-
-        <div className="segmented">
-          <button
-            className={kind === 'mine' ? 'is-active' : ''}
-            onClick={() => setKind('mine')}
-          >
-            Моё
-          </button>
-          <button
-            className={kind === 'waiting' ? 'is-active' : ''}
-            onClick={() => setKind('waiting')}
-          >
-            Жду от кого-то
-          </button>
-        </div>
+        <div className="sheet__title">Во Входящие</div>
 
         <div className="field">
-          <label>{kind === 'mine' ? 'Что нужно сделать' : 'Чего ждём'}</label>
+          <label>Что записать</label>
           <input
             autoFocus
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
+            value={text}
+            onChange={(e) => setText(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && save()}
-            placeholder={kind === 'mine' ? 'Например: согласовать бюджет' : 'Например: отчёт за июнь'}
+            placeholder="Например: перезвонить банку про эквайринг"
           />
-        </div>
-
-        {kind === 'waiting' && (
-          <div className="field">
-            <label>От кого</label>
-            <input value={who} onChange={(e) => setWho(e.target.value)} placeholder="Имя" />
-          </div>
-        )}
-
-        <div className="field">
-          <label>Срок (необязательно)</label>
-          <input
-            className="data"
-            type="date"
-            value={due}
-            onChange={(e) => setDue(e.target.value)}
-          />
+          <div className="capture__hint">Разобрать можно позже — во «Входящих» на Сводке.</div>
         </div>
 
         <div className="sheet__row">
@@ -84,7 +39,7 @@ export function Capture({ onClose }: { onClose: () => void }) {
             Отмена
           </button>
           <button className="btn btn--primary" disabled={!canSave} onClick={save}>
-            Добавить
+            Записать
           </button>
         </div>
       </div>

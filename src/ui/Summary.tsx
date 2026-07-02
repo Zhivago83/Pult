@@ -11,8 +11,14 @@ import { useNow } from './useNow'
  * Внизу — тихая строка «В движении» с активными проектами.
  * Пустой экран — спокойный, без цвета.
  */
-export function Summary({ onOpen }: { onOpen: (id: string) => void }) {
-  const { items, close, trash } = useEngine()
+export function Summary({
+  onOpen,
+  onOpenInbox,
+}: {
+  onOpen: (id: string) => void
+  onOpenInbox: () => void
+}) {
+  const { items, inbox, close, trash } = useEngine()
   const now = useNow()
   const summary = useMemo(() => buildSummary(items, now), [items, now])
   const moving = useMemo(() => activeProjects(items), [items])
@@ -21,6 +27,12 @@ export function Summary({ onOpen }: { onOpen: (id: string) => void }) {
 
   return (
     <>
+      {/* Вход во «Входящие»: тихая строка сверху, счёт только когда есть что разбирать */}
+      <button className="inbox-entry" onClick={onOpenInbox}>
+        <span>Входящие{inbox.length ? ` · ${inbox.length}` : ''}</span>
+        <span className="inbox-entry__arrow">›</span>
+      </button>
+
       <Thermometer t={summary.thermometer} />
 
       {isEmpty ? (

@@ -40,8 +40,8 @@ export function ItemRow({
           </div>
         )}
       </button>
-      <button className="row__trash" aria-label="Удалить" onClick={() => onTrash(item.id)}>
-        удалить
+      <button className="row__trash" aria-label="В корзину" onClick={() => onTrash(item.id)}>
+        ✕
       </button>
     </div>
   )

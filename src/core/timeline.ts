@@ -25,6 +25,7 @@ function describeEdit(before: Item | null, after: Item | null): string {
   if (!before || !after) return 'изменено'
   const parts: string[] = []
   if (before.title !== after.title) parts.push('переименовано')
+  if (before.kind !== after.kind) parts.push(`вид: ${after.kind === 'mine' ? 'моё' : 'жду'}`)
   if (before.who !== after.who) parts.push(`владелец: ${after.who || '—'}`)
   if (before.project !== after.project) parts.push(`проект: ${after.project || '—'}`)
   if (before.dueAt !== after.dueAt) parts.push(`срок: ${dueLabel(after.dueAt)}`)
@@ -38,7 +39,7 @@ export function buildTimeline(ops: Op[], item: Item): TimelineEntry[] {
 
   for (const op of ops) {
     if (op.itemId !== item.id || op.undone) continue
-    if (op.type === 'create') hasCreate = true
+    if (op.type === 'create' || op.type === 'capture') hasCreate = true
 
     let kind: TimelineEntry['kind'] = 'system'
     let text: string
@@ -46,6 +47,12 @@ export function buildTimeline(ops: Op[], item: Item): TimelineEntry[] {
     switch (op.type) {
       case 'create':
         text = 'Создано'
+        break
+      case 'capture':
+        text = 'Записано во Входящие'
+        break
+      case 'triage':
+        text = 'Разложено'
         break
       case 'edit':
         text = describeEdit(op.before, op.after)

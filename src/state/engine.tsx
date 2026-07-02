@@ -16,7 +16,7 @@ import {
   useState,
   type ReactNode,
 } from 'react'
-import type { Item, Kind, Op, OpType, Person, Role } from '../types'
+import type { Item, Op, OpType, Person, Role } from '../types'
 import { idbStore, type Store } from '../store/store'
 import { newId } from '../core/id'
 import { GRACE_MS } from '../core/constants'
@@ -25,16 +25,8 @@ import { seedItems, seedPeople } from '../core/seed'
 /** Сколько миллисекунд висит плашка «Отменить». */
 const TOAST_MS = 7000
 
-/** Ввод при захвате нового пункта. */
-export interface CaptureInput {
-  kind: Kind
-  title: string
-  who?: string
-  dueAt?: number
-}
-
-/** Что можно поправить в карточке пункта. */
-export type EditPatch = Partial<Pick<Item, 'title' | 'who' | 'project' | 'dueAt'>>
+/** Что можно поправить в карточке пункта / при разборе Входящих. */
+export type EditPatch = Partial<Pick<Item, 'title' | 'who' | 'project' | 'dueAt' | 'kind'>>
 
 /** Плашка Undo: что именно предлагаем отменить. */
 export interface Pending {
@@ -46,16 +38,21 @@ export interface Engine {
   ready: boolean
   items: Item[]
   trashed: Item[]
+  /** Необработанные записи «Входящих» (свежие сверху). */
+  inbox: Item[]
   /** Весь журнал операций (для истории пункта). */
   ops: Op[]
   /** Люди с ролями (команда/исполнитель). */
   people: Person[]
   pending: Pending | null
-  capture(input: CaptureInput): void
+  /** Быстрый захват: текст сразу ложится во «Входящие». */
+  capture(text: string): void
+  /** Разбор: запись из «Входящих» становится настоящим пунктом. */
+  triage(id: string): void
   close(id: string): void
   trash(id: string): void
   restore(id: string): void
-  /** Поправить поля пункта (заголовок, владелец, проект, срок). */
+  /** Поправить поля пункта (заголовок, владелец, проект, срок, вид). */
   edit(id: string, patch: EditPatch): void
   /** Добавить комментарий в историю пункта. */
   addComment(id: string, text: string): void
@@ -72,6 +69,8 @@ const EngineContext = createContext<Engine | null>(null)
 // Ярлыки действий для плашки Undo — простыми словами.
 const OP_LABELS: Record<OpType, string> = {
   create: 'Пункт создан',
+  capture: 'Записано во Входящие',
+  triage: 'Разложено',
   close: 'Пункт закрыт',
   reopen: 'Пункт открыт',
   trash: 'Пункт удалён',
@@ -106,6 +105,18 @@ export function EngineProvider({
       if (loaded.length === 0) {
         loaded = seedItems(now())
         for (const it of loaded) await store.putItem(it)
+      } else {
+        // Ремонт данных: из-за старой ошибки в демо-наборе дата создания
+        // могла сохраниться как 1970 год. Чиним тихо, один раз.
+        const SANE = Date.UTC(2000, 0, 1)
+        const repaired: Item[] = []
+        loaded = loaded.map((it) => {
+          if (it.createdAt >= SANE) return it
+          const fixed = { ...it, createdAt: it.updatedAt >= SANE ? it.updatedAt : now() }
+          repaired.push(fixed)
+          return fixed
+        })
+        for (const it of repaired) await store.putItem(it)
       }
       let loadedPeople = await store.allPeople()
       if (loadedPeople.length === 0) {
@@ -154,19 +165,28 @@ export function EngineProvider({
 
   // ── Публичные действия ────────────────────────────────────
 
-  function capture(input: CaptureInput) {
+  /** Быстрый захват: текст сразу ложится во «Входящие» (без разбора). */
+  function capture(text: string) {
+    const title = text.trim()
+    if (!title) return
     const t = now()
     const item: Item = {
       id: newId(),
-      kind: input.kind,
-      title: input.title.trim(),
-      who: input.who?.trim() || undefined,
-      dueAt: input.dueAt,
-      status: 'open',
+      kind: 'mine', // уточняется при разборе
+      title,
+      status: 'inbox',
       createdAt: t,
       updatedAt: t,
     }
-    void commit('create', null, item)
+    void commit('capture', null, item)
+  }
+
+  /** Разбор: запись из «Входящих» становится настоящим пунктом. */
+  function triage(id: string) {
+    const before = items.find((it) => it.id === id)
+    if (!before || before.status !== 'inbox') return
+    const after: Item = { ...before, status: 'open', updatedAt: now() }
+    void commit('triage', before, after)
   }
 
   function close(id: string) {
@@ -220,6 +240,7 @@ export function EngineProvider({
     if (patch.title !== undefined) clean.title = patch.title.trim()
     if (patch.who !== undefined) clean.who = patch.who.trim() || undefined
     if (patch.project !== undefined) clean.project = patch.project.trim() || undefined
+    if (patch.kind !== undefined) clean.kind = patch.kind
     // Для даты важно наличие ключа: `dueAt: undefined` означает «очистить срок».
     if ('dueAt' in patch) clean.dueAt = patch.dueAt
     // Заголовок не может стать пустым.
@@ -229,6 +250,7 @@ export function EngineProvider({
     // Ничего не поменялось — не засоряем журнал.
     if (
       after.title === before.title &&
+      after.kind === before.kind &&
       after.who === before.who &&
       after.project === before.project &&
       after.dueAt === before.dueAt
@@ -319,15 +341,24 @@ export function EngineProvider({
 
   const trashed = useMemo(() => items.filter((it) => it.status === 'trashed'), [items])
   const active = useMemo(() => items.filter((it) => it.status !== 'trashed'), [items])
+  const inbox = useMemo(
+    () =>
+      items
+        .filter((it) => it.status === 'inbox')
+        .sort((a, b) => b.createdAt - a.createdAt),
+    [items],
+  )
 
   const engine: Engine = {
     ready,
     items: active,
     trashed,
+    inbox,
     ops,
     people,
     pending,
     capture,
+    triage,
     close,
     trash,
     restore,

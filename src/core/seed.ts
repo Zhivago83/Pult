@@ -8,14 +8,17 @@ const HOUR = 60 * 60 * 1000
 const DAY = 24 * HOUR
 
 export function seedItems(now: number): Item[] {
-  const base = (over: Partial<Item>): Item => ({
+  // `ago` — сколько времени назад создан пункт. Считаем createdAt ПОСЛЕ
+  // спреда, чтобы ничто его не затёрло (раньше тут была ошибка: в базу
+  // попадало «сырое» смещение, и даты создания показывались как 1970 год).
+  const base = ({ ago, ...over }: Partial<Item> & { ago: number }): Item => ({
     id: over.id!,
     kind: over.kind!,
     title: over.title!,
     status: 'open',
-    createdAt: now - over.createdAt! * 1,
-    updatedAt: now,
     ...over,
+    createdAt: now - ago,
+    updatedAt: now,
   })
 
   return [
@@ -25,7 +28,7 @@ export function seedItems(now: number): Item[] {
       title: 'Согласовать бюджет отдела на квартал',
       project: 'Бюджет',
       dueAt: now - 6 * HOUR, // просрочено → «горит» (красное)
-      createdAt: 3 * DAY,
+      ago: 3 * DAY,
     }),
     base({
       id: 'seed-2',
@@ -34,14 +37,14 @@ export function seedItems(now: number): Item[] {
       who: 'Марина',
       project: 'Отчётность',
       dueAt: now + 2 * DAY, // ожидание на подходе → «пора пнуть»
-      createdAt: 4 * DAY,
+      ago: 4 * DAY,
     }),
     base({
       id: 'seed-3',
       kind: 'mine',
       title: 'Подготовить план найма на III квартал',
       dueAt: now + 5 * DAY, // спокойное «моё»
-      createdAt: 1 * DAY,
+      ago: 1 * DAY,
     }),
     base({
       id: 'seed-4',
@@ -49,7 +52,7 @@ export function seedItems(now: number): Item[] {
       title: 'Правки в презентацию для правления',
       who: 'Игорь',
       // без срока, свежее → спокойное «Ожидания»
-      createdAt: 4 * HOUR,
+      ago: 4 * HOUR,
     }),
     base({
       id: 'seed-5',
@@ -58,7 +61,7 @@ export function seedItems(now: number): Item[] {
       who: 'Марина',
       project: 'Ремонт офиса',
       dueAt: now + 6 * DAY,
-      createdAt: 2 * DAY,
+      ago: 2 * DAY,
     }),
     base({
       id: 'seed-6',
@@ -67,7 +70,7 @@ export function seedItems(now: number): Item[] {
       who: 'Пётр',
       project: 'Ремонт офиса',
       dueAt: now - 1 * DAY, // просрочено → у Петра «срывал срок» (красное)
-      createdAt: 5 * DAY,
+      ago: 5 * DAY,
     }),
     base({
       id: 'seed-7',
@@ -76,7 +79,14 @@ export function seedItems(now: number): Item[] {
       project: 'Ремонт офиса',
       status: 'done', // уже сделано → у «Ремонта офиса» виден прогресс 1/3
       closedAt: now - 2 * DAY,
-      createdAt: 6 * DAY,
+      ago: 6 * DAY,
+    }),
+    base({
+      id: 'seed-8',
+      kind: 'mine',
+      title: 'Перезвонить банку про эквайринг',
+      status: 'inbox', // запись во «Входящих» — ждёт разбора
+      ago: 1 * HOUR,
     }),
   ]
 }
