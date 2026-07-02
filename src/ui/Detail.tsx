@@ -5,6 +5,8 @@ import { projectNames } from '../core/projects'
 import { itemDocs, docLabel } from '../core/docs'
 import { AttachDocSheet } from './AttachDocSheet'
 import { DocCard } from './DocCard'
+import { RepeatSheet } from './RepeatSheet'
+import { ruleLabel } from '../core/repeat'
 import { formatDateShort, formatDateTime, dateInputToTs, tsToDateInput } from '../core/time'
 import { SOON_MS } from '../core/constants'
 import { useNow } from './useNow'
@@ -29,6 +31,7 @@ export function Detail({ id, onClose }: { id: string; onClose: () => void }) {
   const [comment, setComment] = useState('')
   const [showAttach, setShowAttach] = useState(false)
   const [openDocId, setOpenDocId] = useState<string | null>(null)
+  const [showRepeat, setShowRepeat] = useState(false)
 
   // Пункт мог исчезнуть (отмена создания, удаление) — закрываем карточку.
   useEffect(() => {
@@ -121,6 +124,12 @@ export function Detail({ id, onClose }: { id: string; onClose: () => void }) {
             <span className="pill__key">срок</span>
             <span className={`pill__val data${hot ? ' pill__val--hot' : ''}`}>
               {item.dueAt != null ? formatDateShort(item.dueAt) : '—'}
+            </span>
+          </button>
+          <button className="pill" onClick={() => setShowRepeat(true)}>
+            <span className="pill__key">повтор</span>
+            <span className="pill__val data">
+              {item.repeat ? ruleLabel(item.repeat, { short: true }) : 'разовая'}
             </span>
           </button>
         </div>
@@ -270,6 +279,7 @@ export function Detail({ id, onClose }: { id: string; onClose: () => void }) {
     </div>
     {showAttach && <AttachDocSheet itemId={id} onClose={() => setShowAttach(false)} />}
     {openDocId && <DocCard docId={openDocId} onClose={() => setOpenDocId(null)} />}
+    {showRepeat && <RepeatSheet itemId={id} onClose={() => setShowRepeat(false)} />}
     </>
   )
 }

@@ -1,5 +1,6 @@
 import type { VisibleItem } from '../core/derive'
 import { formatDue } from '../core/time'
+import { ruleLabel } from '../core/repeat'
 import { SOON_MS } from '../core/constants'
 
 /**
@@ -32,11 +33,14 @@ export function ItemRow({
       />
       <button className="row__body" onClick={() => onOpen(item.id)}>
         <div className="row__title">{item.title}</div>
-        {(item.who || item.project || due) && (
+        {(item.who || item.project || due || item.repeat) && (
           <div className="row__meta data">
             {item.who && <span className="row__who">{item.who}</span>}
             {item.project && <span className="row__project">{item.project}</span>}
             {due && <span className={`row__due${hot ? ' row__due--hot' : ''}`}>{due}</span>}
+            {item.repeat && (
+              <span className="row__repeat">{ruleLabel(item.repeat, { short: true })}</span>
+            )}
           </div>
         )}
       </button>

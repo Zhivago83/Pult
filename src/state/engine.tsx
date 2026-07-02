@@ -21,6 +21,7 @@ import { idbStore, type Store } from '../store/store'
 import { newId } from '../core/id'
 import { docLabel } from '../core/docs'
 import { makeIsWorkday } from '../core/calendar'
+import { nextOccurrence } from '../core/repeat'
 import { GRACE_MS } from '../core/constants'
 import { seedItems, seedPeople, seedDocs } from '../core/seed'
 
@@ -28,7 +29,9 @@ import { seedItems, seedPeople, seedDocs } from '../core/seed'
 const TOAST_MS = 7000
 
 /** Что можно поправить в карточке пункта / при разборе Входящих. */
-export type EditPatch = Partial<Pick<Item, 'title' | 'who' | 'project' | 'dueAt' | 'kind'>>
+export type EditPatch = Partial<
+  Pick<Item, 'title' | 'who' | 'project' | 'dueAt' | 'kind' | 'repeat'>
+>
 
 /** Плашка Undo: что именно предлагаем отменить. */
 export interface Pending {
@@ -249,10 +252,41 @@ export function EngineProvider({
       ...before,
       status: 'done',
       closedAt: t,
-      graceUntil: t + GRACE_MS, // period благодати: 6 секунд зачёркнут
+      graceUntil: t + GRACE_MS, // период благодати: 6 секунд зачёркнут
       updatedAt: t,
     }
-    void commit('close', before, after)
+    // Повторяющийся пункт: сразу заводим следующий период по правилу.
+    let spawned: Item | undefined
+    if (before.repeat) {
+      const res = nextOccurrence(before.repeat, before.dueAt ?? t, isWorkday)
+      if (res) {
+        spawned = {
+          ...before,
+          id: newId(),
+          dueAt: res.date,
+          repeat: res.rule,
+          status: 'open',
+          closedAt: undefined,
+          graceUntil: undefined,
+          docIds: undefined, // документы остаются у закрытого периода
+          createdAt: t,
+          updatedAt: t,
+        }
+      }
+    }
+    const op: Op = { id: newId(), ts: t, type: 'close', itemId: id, before, after, spawned }
+    ;(async () => {
+      await store.putItem(after)
+      if (spawned) await store.putItem(spawned)
+      await store.putOp(op)
+      setItems((prev) => {
+        const updated = prev.map((it) => (it.id === id ? after : it))
+        return spawned ? [...updated, spawned] : updated
+      })
+      setOps((prev) => [...prev, op])
+      setPending({ op, label: OP_LABELS.close })
+      scheduleToastHide()
+    })()
   }
 
   function trash(id: string) {
@@ -293,8 +327,9 @@ export function EngineProvider({
     if (patch.who !== undefined) clean.who = patch.who.trim() || undefined
     if (patch.project !== undefined) clean.project = patch.project.trim() || undefined
     if (patch.kind !== undefined) clean.kind = patch.kind
-    // Для даты важно наличие ключа: `dueAt: undefined` означает «очистить срок».
+    // Для даты и повтора важно наличие ключа: undefined означает «очистить».
     if ('dueAt' in patch) clean.dueAt = patch.dueAt
+    if ('repeat' in patch) clean.repeat = patch.repeat
     // Заголовок не может стать пустым.
     if (clean.title !== undefined && clean.title === '') delete clean.title
 
@@ -305,7 +340,8 @@ export function EngineProvider({
       after.kind === before.kind &&
       after.who === before.who &&
       after.project === before.project &&
-      after.dueAt === before.dueAt
+      after.dueAt === before.dueAt &&
+      JSON.stringify(after.repeat ?? null) === JSON.stringify(before.repeat ?? null)
     ) {
       return
     }
@@ -527,6 +563,12 @@ export function EngineProvider({
         if (before) await store.putItem(before)
         else await store.removeItem(id)
         applySnapshot(id, before)
+        // Закрытие повторяющегося создало следующий период — убираем его.
+        if (op.spawned) {
+          const spawnedId = op.spawned.id
+          await store.removeItem(spawnedId)
+          setItems((prev) => prev.filter((it) => it.id !== spawnedId))
+        }
         // Привязка создала документ — убираем и его.
         if (op.type === 'attachDoc' && op.docAfter) {
           const docId = op.docAfter.id

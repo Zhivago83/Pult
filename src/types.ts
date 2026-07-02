@@ -4,6 +4,8 @@
 //  Всё остальное (хранилище, ядро, экраны) опирается на эти типы.
 // ─────────────────────────────────────────────────────────────
 
+import type { RepeatRule } from './core/repeat'
+
 /** Вид пункта: «моё» дело или «жду от кого-то». */
 export type Kind = 'mine' | 'waiting'
 
@@ -89,6 +91,8 @@ export interface Item {
   graceUntil?: number
   /** Привязанные документы (id из хранилища docs). */
   docIds?: string[]
+  /** Правило повторения. Отсутствует — разовая. */
+  repeat?: RepeatRule
   createdAt: number
   updatedAt: number
 }

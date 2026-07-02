@@ -28,6 +28,8 @@ export function seedItems(now: number): Item[] {
       title: 'Согласовать бюджет отдела на квартал',
       project: 'Бюджет',
       dueAt: now - 6 * HOUR, // просрочено → «горит» (красное)
+      // Повтор из брифа: «Каждый квартал · 5-й рабочий день»
+      repeat: { freq: 'quarter', anchor: { type: 'workday', n: 5 }, shift: 'none', end: { type: 'never' } },
       ago: 3 * DAY,
     }),
     base({
