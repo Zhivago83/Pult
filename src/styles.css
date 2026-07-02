@@ -879,3 +879,41 @@ button.row {
   font-size: 12.5px;
   color: var(--muted);
 }
+
+/* ─────────────────────────────────────────────────────────────
+   ДОКУМЕНТЫ
+   ───────────────────────────────────────────────────────────── */
+
+/* Поля документа: «ключ — значение» тонкими строками */
+.doc__fields {
+  margin-bottom: 20px;
+}
+.doc__row {
+  display: flex;
+  gap: 14px;
+  padding: 9px 0;
+  border-bottom: 1px solid var(--hairline);
+  font-size: 14px;
+}
+.doc__key {
+  flex: none;
+  width: 118px;
+  font-size: 12px;
+  color: var(--muted);
+  letter-spacing: 0.02em;
+  padding-top: 2px;
+}
+.doc__val {
+  flex: 1;
+  color: var(--ink);
+  word-break: break-word;
+}
+
+/* Блок «Документы» в карточке пункта */
+.docs-block {
+  margin-bottom: 22px;
+}
+.docs-block__add {
+  display: block;
+  padding: 12px 0 0;
+}

@@ -30,6 +30,28 @@ export interface Person {
  */
 export type Status = 'inbox' | 'open' | 'done' | 'trashed'
 
+/**
+ * Документ — карточка с полями (не файл). Привязывается к пунктам
+ * (item.docIds) и виден через них и через карточку корреспондента.
+ */
+export interface Doc {
+  id: string
+  /** Тип: «входящее», «исходящее», «договор»… — список дополняемый. */
+  docType: string
+  /** Номер документа. */
+  number: string
+  /** Дата документа (метка времени). */
+  docDate?: number
+  /** Корреспондент: человек из списка или вписанный вручную. */
+  correspondent?: string
+  /** Краткое описание. */
+  description?: string
+  /** Контрольный срок (необязательно). */
+  controlAt?: number
+  createdAt: number
+  updatedAt: number
+}
+
 /** Пункт — единица работы: задача, ожидание, проект. */
 export interface Item {
   id: string
@@ -52,6 +74,8 @@ export interface Item {
    * показывается зачёркнутым в Сводке, потом исчезает.
    */
   graceUntil?: number
+  /** Привязанные документы (id из хранилища docs). */
+  docIds?: string[]
   createdAt: number
   updatedAt: number
 }
@@ -69,6 +93,8 @@ export type OpType =
   | 'comment' // комментарий в истории пункта
   | 'remind' // отметка «напомнил» (для «жду от кого-то»)
   | 'setRole' // смена роли человека (команда/исполнитель)
+  | 'attachDoc' // документ привязан к пункту (возможно, только что создан)
+  | 'detachDoc' // документ отвязан от пункта
 
 /**
  * Op — запись журнала операций.
@@ -93,6 +119,12 @@ export interface Op {
   personBefore?: Person | null
   /** Снимок человека после операции (для type === 'setRole'). */
   personAfter?: Person | null
+  /**
+   * Документ, созданный этой операцией (для type === 'attachDoc',
+   * когда привязали только что созданный документ) — чтобы Undo мог
+   * удалить и его.
+   */
+  docAfter?: Doc
   /** Была ли операция уже отменена. */
   undone?: boolean
 }

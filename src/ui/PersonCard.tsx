@@ -1,8 +1,10 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { useEngine } from '../state/engine'
 import { roleOf, personReliability, personWaitingItems, reliabilityWords } from '../core/people'
-import { formatDue } from '../core/time'
+import { personDocs, docLabel } from '../core/docs'
+import { formatDue, formatDateShort } from '../core/time'
 import { SOON_MS } from '../core/constants'
+import { DocCard } from './DocCard'
 import { useNow } from './useNow'
 
 /**
@@ -19,8 +21,9 @@ export function PersonCard({
   onOpenItem: (id: string) => void
   onClose: () => void
 }) {
-  const { items, ops, people, setRole } = useEngine()
+  const { items, ops, people, docs, setRole } = useEngine()
   const now = useNow()
+  const [openDocId, setOpenDocId] = useState<string | null>(null)
 
   const role = roleOf(people, name)
   const reliability = useMemo(
@@ -28,8 +31,10 @@ export function PersonCard({
     [name, items, ops, now],
   )
   const waiting = useMemo(() => personWaitingItems(items, name), [items, name])
+  const docsOf = useMemo(() => personDocs(docs, name), [docs, name])
 
   return (
+    <>
     <div className="sheet-backdrop" onClick={onClose}>
       <div className="sheet panel" onClick={(e) => e.stopPropagation()}>
         <div className="detail__top">
@@ -87,7 +92,33 @@ export function PersonCard({
             })}
           </div>
         )}
+
+        {/* Документы, где человек — корреспондент */}
+        {docsOf.length > 0 && (
+          <>
+            <div className="detail__histHead">Документы · {docsOf.length}</div>
+            <div>
+              {docsOf.map((d) => (
+                <button className="row" key={d.id} onClick={() => setOpenDocId(d.id)}>
+                  <div className="row__body">
+                    <div className="row__title data">{docLabel(d)}</div>
+                    {(d.description || d.docDate != null) && (
+                      <div className="row__meta">
+                        {d.description && <span>{d.description}</span>}
+                        {d.docDate != null && (
+                          <span className="data">{formatDateShort(d.docDate)}</span>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </button>
+              ))}
+            </div>
+          </>
+        )}
       </div>
     </div>
+    {openDocId && <DocCard docId={openDocId} onClose={() => setOpenDocId(null)} />}
+    </>
   )
 }

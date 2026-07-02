@@ -2,7 +2,7 @@
 // и сразу показывала все секции. Засеваются один раз (когда база
 // пуста) и дальше живут как обычные данные — их можно закрыть/удалить.
 
-import type { Item, Person } from '../types'
+import type { Doc, Item, Person } from '../types'
 
 const HOUR = 60 * 60 * 1000
 const DAY = 24 * HOUR
@@ -88,6 +88,37 @@ export function seedItems(now: number): Item[] {
       status: 'inbox', // запись во «Входящих» — ждёт разбора
       ago: 1 * HOUR,
     }),
+  ]
+}
+
+/**
+ * Демо-документы для первого запуска (сеются вместе с демо-пунктами):
+ * договор привязан к пункту «Договор с подрядчиком», а входящее письмо
+ * с контрольным сроком — не привязано, чтобы показать кнопку «Отработать».
+ */
+export function seedDocs(now: number): Doc[] {
+  return [
+    {
+      id: 'seed-doc-1',
+      docType: 'договор',
+      number: '42-П',
+      docDate: now - 6 * DAY,
+      correspondent: 'Пётр',
+      description: 'Договор подряда на ремонт офиса',
+      createdAt: now - 6 * DAY,
+      updatedAt: now - 6 * DAY,
+    },
+    {
+      id: 'seed-doc-2',
+      docType: 'входящее',
+      number: '118',
+      docDate: now - 1 * DAY,
+      correspondent: 'Игорь',
+      description: 'Запрос допматериалов к презентации',
+      controlAt: now + 3 * DAY, // не привязан → предложим «Отработать № 118»
+      createdAt: now - 1 * DAY,
+      updatedAt: now - 1 * DAY,
+    },
   ]
 }
 
