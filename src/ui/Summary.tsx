@@ -4,6 +4,7 @@ import { buildSummary } from '../core/derive'
 import { Thermometer } from './Thermometer'
 import { ItemRow } from './ItemRow'
 import { DayNote } from './DayNote'
+import { Tips } from './Tips'
 import { useNow } from './useNow'
 
 /**
@@ -20,6 +21,7 @@ export function Summary({ onOpen }: { onOpen: (id: string) => void }) {
   return (
     <>
       <DayNote />
+      <Tips />
       <Thermometer t={summary.thermometer} />
 
       {isEmpty ? (
