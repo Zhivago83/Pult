@@ -1036,33 +1036,30 @@ button.row {
   opacity: 0.4;
 }
 
-/* Горизонтальная карусель чисел */
-.numstrip {
-  display: flex;
+/* Сетка-календарь чисел: 7 в ряд, все видны сразу, воздушно */
+.numgrid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
   gap: 6px;
-  overflow-x: auto;
-  padding: 2px 0 8px;
-  margin-bottom: 8px;
-  -webkit-overflow-scrolling: touch;
-  scrollbar-width: none;
+  max-width: 340px;
+  margin-bottom: 10px;
 }
-.numstrip::-webkit-scrollbar {
-  display: none;
-}
-.numstrip button {
-  flex: none;
-  min-width: 38px;
-  padding: 8px 6px;
+.numgrid button {
+  padding: 9px 0;
   border: 1px solid var(--hairline);
-  border-radius: 19px;
+  border-radius: 9px;
   font-size: 13px;
   color: var(--muted);
+  text-align: center;
 }
-.numstrip button.is-active {
+.numgrid button.is-active {
   background: var(--ink);
   color: var(--paper);
   border-color: var(--ink);
 }
-.numstrip__last {
-  padding: 8px 14px !important;
+.numgrid__extra {
+  margin-bottom: 4px;
+}
+.repeat__inline--gap {
+  margin-bottom: 10px;
 }

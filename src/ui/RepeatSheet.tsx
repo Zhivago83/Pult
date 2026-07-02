@@ -63,9 +63,11 @@ function Stepper({
   )
 }
 
-/** Горизонтальная карусель чисел (+ необязательный чип «последнее»). */
-function NumStrip({
-  from,
+/**
+ * Сетка-календарь: кнопки 1..N строками по 7, как в календаре.
+ * Все числа видны сразу; ниже — необязательная кнопка «последнее».
+ */
+function NumGrid({
   to,
   value,
   active,
@@ -74,7 +76,6 @@ function NumStrip({
   lastActive,
   onLast,
 }: {
-  from: number
   to: number
   value: number
   /** Подсвечивать ли число (false, когда выбран «последний»). */
@@ -85,24 +86,28 @@ function NumStrip({
   onLast?: () => void
 }) {
   const nums = []
-  for (let n = from; n <= to; n++) nums.push(n)
+  for (let n = 1; n <= to; n++) nums.push(n)
   return (
-    <div className="numstrip data">
-      {nums.map((n) => (
-        <button
-          key={n}
-          className={active && n === value ? 'is-active' : ''}
-          onClick={() => onPick(n)}
-        >
-          {n}
-        </button>
-      ))}
+    <>
+      <div className="numgrid data">
+        {nums.map((n) => (
+          <button
+            key={n}
+            className={active && n === value ? 'is-active' : ''}
+            onClick={() => onPick(n)}
+          >
+            {n}
+          </button>
+        ))}
+      </div>
       {lastLabel && onLast && (
-        <button className={`numstrip__last${lastActive ? ' is-active' : ''}`} onClick={onLast}>
-          {lastLabel}
-        </button>
+        <div className="choices numgrid__extra">
+          <button className={lastActive ? 'is-active' : ''} onClick={onLast}>
+            {lastLabel}
+          </button>
+        </div>
       )}
-    </div>
+    </>
   )
 }
 
@@ -132,7 +137,8 @@ export function RepeatSheet({ itemId, onClose }: { itemId: string; onClose: () =
   const [domLast, setDomLast] = useState(a?.type === 'dom' && a.day === -1)
   const [wdN, setWdN] = useState(a?.type === 'workday' && a.n !== -1 ? a.n : 1)
   const [wdLast, setWdLast] = useState(a?.type === 'workday' && a.n === -1)
-  const [nthN, setNthN] = useState(a?.type === 'nthWeekday' ? a.n : 1)
+  const [nthN, setNthN] = useState(a?.type === 'nthWeekday' && a.n !== -1 ? a.n : 1)
+  const [nthLast, setNthLast] = useState(a?.type === 'nthWeekday' && a.n === -1)
   const [nthWd, setNthWd] = useState<Weekday>(
     a?.type === 'nthWeekday' ? a.weekday : isoWeekday(base),
   )
@@ -180,7 +186,7 @@ export function RepeatSheet({ itemId, onClose }: { itemId: string; onClose: () =
       if (anchorType === 'dom') rule.anchor = { type: 'dom', day: domLast ? -1 : domDay }
       else if (anchorType === 'workday') rule.anchor = { type: 'workday', n: wdLast ? -1 : wdN }
       else if (anchorType === 'nthWeekday')
-        rule.anchor = { type: 'nthWeekday', n: nthN, weekday: nthWd }
+        rule.anchor = { type: 'nthWeekday', n: nthLast ? -1 : nthN, weekday: nthWd }
       else if (anchorType === 'fromStart')
         rule.anchor = { type: 'fromStart', days: offDays, business: offBusiness }
       else rule.anchor = { type: 'fromEnd', days: offDays, business: offBusiness }
@@ -323,8 +329,7 @@ export function RepeatSheet({ itemId, onClose }: { itemId: string; onClose: () =
                 {anchorType === 'dom' && (
                   <div className="field">
                     <label>{freq === 'month' ? 'Число' : 'День периода'}</label>
-                    <NumStrip
-                      from={1}
+                    <NumGrid
                       to={31}
                       value={domDay}
                       active={!domLast}
@@ -366,17 +371,17 @@ export function RepeatSheet({ itemId, onClose }: { itemId: string; onClose: () =
                   <>
                     <div className="field">
                       <label>По счёту</label>
-                      <Chips
-                        options={[
-                          { v: 1, label: 'первый' },
-                          { v: 2, label: 'второй' },
-                          { v: 3, label: 'третий' },
-                          { v: 4, label: 'четвёртый' },
-                          { v: -1, label: 'последний' },
-                        ]}
-                        value={nthN}
-                        onPick={setNthN}
-                      />
+                      <div className="repeat__inline">
+                        <Stepper value={nthN} min={1} max={4} disabled={nthLast} onChange={setNthN} />
+                        <div className="choices">
+                          <button
+                            className={nthLast ? 'is-active' : ''}
+                            onClick={() => setNthLast(!nthLast)}
+                          >
+                            последний
+                          </button>
+                        </div>
+                      </div>
                     </div>
                     <div className="field">
                       <label>День недели</label>
@@ -405,7 +410,9 @@ export function RepeatSheet({ itemId, onClose }: { itemId: string; onClose: () =
                         ? 'Через сколько дней от начала'
                         : 'За сколько дней до конца'}
                     </label>
-                    <NumStrip from={1} to={15} value={offDays} active onPick={setOffDays} />
+                    <div className="repeat__inline repeat__inline--gap">
+                      <Stepper value={offDays} min={1} max={15} onChange={setOffDays} />
+                    </div>
                     <Chips
                       options={[
                         { v: false, label: 'календарные' },
