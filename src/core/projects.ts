@@ -18,9 +18,9 @@ export interface ProjectRow {
   overdue: number
 }
 
-/** Пункт учитывается в проектах: есть проект и он не в корзине. */
+/** Пункт учитывается в проектах: есть проект и это дело (не корзина/входящие). */
 function counts(it: Item): boolean {
-  return !!it.project && it.status !== 'trashed'
+  return !!it.project && (it.status === 'open' || it.status === 'done')
 }
 
 /** Список проектов со счётчиками прогресса. */

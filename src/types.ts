@@ -23,11 +23,12 @@ export interface Person {
 
 /**
  * Состояние пункта.
+ *  inbox   — запись во «Входящих», ещё не разобрана в дело
  *  open    — активен, виден в Сводке
  *  done    — закрыт (выполнен)
  *  trashed — в Корзине (мягкое удаление)
  */
-export type Status = 'open' | 'done' | 'trashed'
+export type Status = 'inbox' | 'open' | 'done' | 'trashed'
 
 /** Пункт — единица работы: задача, ожидание, проект. */
 export interface Item {
@@ -58,6 +59,8 @@ export interface Item {
 /** Типы операций для журнала (op-log) — понятны человеку. */
 export type OpType =
   | 'create' // создание пункта
+  | 'capture' // быстрая запись во «Входящие»
+  | 'triage' // разбор: запись из «Входящих» стала настоящим пунктом
   | 'close' // закрытие (тап по кружку)
   | 'reopen' // повторное открытие
   | 'trash' // мягкое удаление в Корзину

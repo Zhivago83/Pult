@@ -8,6 +8,8 @@ import { Capture } from './ui/Capture'
 import { Detail } from './ui/Detail'
 import { PersonCard } from './ui/PersonCard'
 import { ProjectCard } from './ui/ProjectCard'
+import { Inbox } from './ui/Inbox'
+import { InboxCard } from './ui/InboxCard'
 import { Trash } from './ui/Trash'
 import { UndoToast } from './ui/UndoToast'
 
@@ -22,6 +24,8 @@ function Shell() {
   const [openId, setOpenId] = useState<string | null>(null)
   const [openPerson, setOpenPerson] = useState<string | null>(null)
   const [openProject, setOpenProject] = useState<string | null>(null)
+  const [showInbox, setShowInbox] = useState(false)
+  const [openRecord, setOpenRecord] = useState<string | null>(null)
 
   const waitingCount = useMemo(
     () => items.filter((it) => it.kind === 'waiting' && it.status === 'open').length,
@@ -65,7 +69,7 @@ function Shell() {
         </button>
       </nav>
 
-      {screen === 'summary' && <Summary onOpen={setOpenId} />}
+      {screen === 'summary' && <Summary onOpen={setOpenId} onOpenInbox={() => setShowInbox(true)} />}
       {screen === 'waiting' && <Waiting onOpenItem={setOpenId} onOpenPerson={setOpenPerson} />}
       {screen === 'projects' && <Projects onOpenProject={setOpenProject} />}
 
@@ -88,6 +92,8 @@ function Shell() {
           onClose={() => setOpenProject(null)}
         />
       )}
+      {showInbox && <Inbox onOpenRecord={setOpenRecord} onClose={() => setShowInbox(false)} />}
+      {openRecord && <InboxCard id={openRecord} onClose={() => setOpenRecord(null)} />}
       {openId && <Detail id={openId} onClose={() => setOpenId(null)} />}
       {showTrash && <Trash onClose={() => setShowTrash(false)} />}
 

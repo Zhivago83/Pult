@@ -833,3 +833,49 @@ button.row {
   font-size: 12.5px;
   color: var(--muted);
 }
+
+/* ─────────────────────────────────────────────────────────────
+   «ВХОДЯЩИЕ»: быстрый захват и разбор
+   ───────────────────────────────────────────────────────────── */
+
+/* Вход со Сводки: тихая строка над термометром */
+.inbox-entry {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  width: 100%;
+  text-align: left;
+  font-size: 13px;
+  color: var(--muted);
+  letter-spacing: 0.01em;
+  padding: 0 0 12px;
+  border-bottom: 1px solid var(--hairline);
+  margin-bottom: 18px;
+}
+.inbox-entry:hover {
+  color: var(--ink);
+}
+.inbox-entry__arrow {
+  font-size: 15px;
+  line-height: 1;
+}
+
+/* Спокойное пустое состояние Входящих */
+.inbox-empty {
+  color: var(--muted);
+  font-size: 14px;
+  padding: 24px 0;
+  text-align: center;
+}
+
+/* Переключатель вида при разборе */
+.inbox__kind {
+  margin-bottom: 16px;
+}
+
+/* Подсказка под полем быстрого захвата */
+.capture__hint {
+  margin-top: 8px;
+  font-size: 12.5px;
+  color: var(--muted);
+}

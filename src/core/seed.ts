@@ -81,6 +81,13 @@ export function seedItems(now: number): Item[] {
       closedAt: now - 2 * DAY,
       ago: 6 * DAY,
     }),
+    base({
+      id: 'seed-8',
+      kind: 'mine',
+      title: 'Перезвонить банку про эквайринг',
+      status: 'inbox', // запись во «Входящих» — ждёт разбора
+      ago: 1 * HOUR,
+    }),
   ]
 }
 
