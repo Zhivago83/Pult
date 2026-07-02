@@ -7,7 +7,7 @@
 // ─────────────────────────────────────────────────────────────
 
 import { openDB, type IDBPDatabase } from 'idb'
-import type { Doc, Item, Op, Person } from '../types'
+import type { CalEntry, Doc, Item, Op, Person } from '../types'
 
 /** Контракт хранилища — то, что нужно ядру приложения. */
 export interface Store {
@@ -22,6 +22,9 @@ export interface Store {
   allDocs(): Promise<Doc[]>
   putDoc(doc: Doc): Promise<void>
   removeDoc(id: string): Promise<void>
+  allCal(): Promise<CalEntry[]>
+  putCal(entry: CalEntry): Promise<void>
+  removeCal(date: string): Promise<void>
 }
 
 const DB_NAME = 'pult'
@@ -29,12 +32,14 @@ const DB_NAME = 'pult'
 // версий, чтобы на устройствах, где успела появиться база v3, открытие
 // не падало с ошибкой понижения версии. Лишние сторы (если есть) просто
 // не используются.
-// В 5-й версии добавлено хранилище документов (docs).
-const DB_VERSION = 5
+// В 5-й версии добавлено хранилище документов (docs),
+// в 6-й — производственный календарь (calendar).
+const DB_VERSION = 6
 const ITEMS = 'items'
 const OPS = 'ops'
 const PEOPLE = 'people'
 const DOCS = 'docs'
+const CALENDAR = 'calendar'
 
 let dbPromise: Promise<IDBPDatabase> | null = null
 
@@ -56,6 +61,10 @@ function db(): Promise<IDBPDatabase> {
         // Добавлено в 5-й версии: документы (карточки с полями).
         if (!database.objectStoreNames.contains(DOCS)) {
           database.createObjectStore(DOCS, { keyPath: 'id' })
+        }
+        // Добавлено в 6-й версии: производственный календарь.
+        if (!database.objectStoreNames.contains(CALENDAR)) {
+          database.createObjectStore(CALENDAR, { keyPath: 'date' })
         }
       },
     })
@@ -97,5 +106,14 @@ export const idbStore: Store = {
   },
   async removeDoc(id) {
     await (await db()).delete(DOCS, id)
+  },
+  async allCal() {
+    return (await db()).getAll(CALENDAR) as Promise<CalEntry[]>
+  },
+  async putCal(entry) {
+    await (await db()).put(CALENDAR, entry)
+  },
+  async removeCal(date) {
+    await (await db()).delete(CALENDAR, date)
   },
 }

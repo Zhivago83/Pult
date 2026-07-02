@@ -917,3 +917,34 @@ button.row {
   display: block;
   padding: 12px 0 0;
 }
+
+/* ─────────────────────────────────────────────────────────────
+   ПРОИЗВОДСТВЕННЫЙ КАЛЕНДАРЬ
+   ───────────────────────────────────────────────────────────── */
+.cal__note {
+  font-size: 13px;
+  color: var(--muted);
+  line-height: 1.45;
+  margin-bottom: 18px;
+}
+.cal__kind {
+  margin-bottom: 14px;
+}
+.cal__tag {
+  font-size: 11px;
+  color: var(--muted);
+  letter-spacing: 0.04em;
+  margin-left: 8px;
+}
+
+/* Шапка: заголовок ужимается, чтобы три ссылки помещались на телефоне */
+.topbar__title {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.topbar__actions {
+  flex: none;
+  gap: 14px;
+}
