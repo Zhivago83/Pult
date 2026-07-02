@@ -36,11 +36,82 @@ function Chips<T>({
   )
 }
 
+/** Степпер «− N +»: числа меняются только тапами. */
+function Stepper({
+  value,
+  onChange,
+  min = 1,
+  max = 999,
+  disabled = false,
+}: {
+  value: number
+  onChange: (v: number) => void
+  min?: number
+  max?: number
+  disabled?: boolean
+}) {
+  return (
+    <div className={`stepper data${disabled ? ' stepper--off' : ''}`}>
+      <button aria-label="Меньше" disabled={disabled} onClick={() => onChange(Math.max(min, value - 1))}>
+        −
+      </button>
+      <span className="stepper__val">{value}</span>
+      <button aria-label="Больше" disabled={disabled} onClick={() => onChange(Math.min(max, value + 1))}>
+        +
+      </button>
+    </div>
+  )
+}
+
+/** Горизонтальная карусель чисел (+ необязательный чип «последнее»). */
+function NumStrip({
+  from,
+  to,
+  value,
+  active,
+  onPick,
+  lastLabel,
+  lastActive,
+  onLast,
+}: {
+  from: number
+  to: number
+  value: number
+  /** Подсвечивать ли число (false, когда выбран «последний»). */
+  active: boolean
+  onPick: (v: number) => void
+  lastLabel?: string
+  lastActive?: boolean
+  onLast?: () => void
+}) {
+  const nums = []
+  for (let n = from; n <= to; n++) nums.push(n)
+  return (
+    <div className="numstrip data">
+      {nums.map((n) => (
+        <button
+          key={n}
+          className={active && n === value ? 'is-active' : ''}
+          onClick={() => onPick(n)}
+        >
+          {n}
+        </button>
+      ))}
+      {lastLabel && onLast && (
+        <button className={`numstrip__last${lastActive ? ' is-active' : ''}`} onClick={onLast}>
+          {lastLabel}
+        </button>
+      )}
+    </div>
+  )
+}
+
 /**
  * Настройка повторения пункта. Сверху пресеты одним нажатием
  * (разовая / еженедельно / ежемесячно / ежеквартально), ниже —
- * «Настроить…» с конструктором: частота, якорь («какой день брать»),
- * сдвиг с выходного, окончание. Живой предпросмотр строкой.
+ * «Настроить…» с конструктором. Числа выбираются только тапами
+ * (карусель/степпер); блок сдвига с выходного показывается лишь
+ * тогда, когда дата реально может попасть на выходной.
  */
 export function RepeatSheet({ itemId, onClose }: { itemId: string; onClose: () => void }) {
   const { items, edit } = useEngine()
@@ -55,7 +126,9 @@ export function RepeatSheet({ itemId, onClose }: { itemId: string; onClose: () =
   const [weekdays, setWeekdays] = useState<Weekday[]>(r?.weekdays ?? [isoWeekday(base)])
   const a = r?.anchor
   const [anchorType, setAnchorType] = useState<Anchor['type']>(a?.type ?? 'dom')
-  const [domDay, setDomDay] = useState(a?.type === 'dom' && a.day !== -1 ? a.day : base.getDate())
+  const [domDay, setDomDay] = useState(
+    a?.type === 'dom' && a.day !== -1 ? Math.min(a.day, 31) : Math.min(base.getDate(), 31),
+  )
   const [domLast, setDomLast] = useState(a?.type === 'dom' && a.day === -1)
   const [wdN, setWdN] = useState(a?.type === 'workday' && a.n !== -1 ? a.n : 1)
   const [wdLast, setWdLast] = useState(a?.type === 'workday' && a.n === -1)
@@ -64,7 +137,7 @@ export function RepeatSheet({ itemId, onClose }: { itemId: string; onClose: () =
     a?.type === 'nthWeekday' ? a.weekday : isoWeekday(base),
   )
   const [offDays, setOffDays] = useState(
-    a?.type === 'fromStart' || a?.type === 'fromEnd' ? a.days : 3,
+    a?.type === 'fromStart' || a?.type === 'fromEnd' ? Math.min(a.days, 15) : 3,
   )
   const [offBusiness, setOffBusiness] = useState(
     a?.type === 'fromStart' || a?.type === 'fromEnd' ? a.business : true,
@@ -78,6 +151,22 @@ export function RepeatSheet({ itemId, onClose }: { itemId: string; onClose: () =
 
   if (!item) return null
 
+  /**
+   * Может ли вычисленная дата попасть на выходной:
+   *  • «рабочий день» — никогда (он и так рабочий);
+   *  • «день недели по счёту» — только если выбран сб/вс;
+   *  • «от начала/до конца» — только в календарных днях;
+   *  • «число» — всегда может; день/неделя — как день недели.
+   */
+  const shiftApplicable = (() => {
+    if (freq === 'day') return true
+    if (freq === 'week') return weekdays.some((w) => w >= 6)
+    if (anchorType === 'workday') return false
+    if (anchorType === 'nthWeekday') return nthWd >= 6
+    if (anchorType === 'fromStart' || anchorType === 'fromEnd') return !offBusiness
+    return true // «число»
+  })()
+
   function setRule(rule: RepeatRule | undefined) {
     edit(itemId, { repeat: rule })
     onClose()
@@ -85,7 +174,7 @@ export function RepeatSheet({ itemId, onClose }: { itemId: string; onClose: () =
 
   /** Собрать правило из состояния конструктора. */
   function buildRule(): RepeatRule {
-    const rule: RepeatRule = { freq, shift }
+    const rule: RepeatRule = { freq, shift: shiftApplicable ? shift : 'none' }
     if (freq === 'week') rule.weekdays = weekdays.length ? [...weekdays].sort() : [isoWeekday(base)]
     if (freq === 'month' || freq === 'quarter' || freq === 'year') {
       if (anchorType === 'dom') rule.anchor = { type: 'dom', day: domLast ? -1 : domDay }
@@ -142,7 +231,7 @@ export function RepeatSheet({ itemId, onClose }: { itemId: string; onClose: () =
             onClick={() =>
               setRule({
                 freq: 'month',
-                anchor: { type: 'dom', day: base.getDate() },
+                anchor: { type: 'dom', day: Math.min(base.getDate(), 31) },
                 shift: 'none',
                 end: { type: 'never' },
               })
@@ -171,6 +260,11 @@ export function RepeatSheet({ itemId, onClose }: { itemId: string; onClose: () =
           </button>
         ) : (
           <div className="repeat__builder">
+            {/* Живой предпросмотр — сверху, чтобы выбор сразу был виден */}
+            <div className="repeat__preview data">
+              → {ruleLabel(preview, { formatDate: formatDateShort })}
+            </div>
+
             <div className="field">
               <label>Частота</label>
               <Chips
@@ -229,25 +323,19 @@ export function RepeatSheet({ itemId, onClose }: { itemId: string; onClose: () =
                 {anchorType === 'dom' && (
                   <div className="field">
                     <label>{freq === 'month' ? 'Число' : 'День периода'}</label>
-                    <div className="repeat__inline">
-                      <input
-                        className="data repeat__num"
-                        type="number"
-                        min={1}
-                        max={freq === 'month' ? 31 : freq === 'quarter' ? 92 : 366}
-                        value={domDay}
-                        disabled={domLast}
-                        onChange={(e) => setDomDay(Number(e.target.value) || 1)}
-                      />
-                      <div className="choices">
-                        <button
-                          className={domLast ? 'is-active' : ''}
-                          onClick={() => setDomLast(!domLast)}
-                        >
-                          {freq === 'month' ? 'последнее' : 'последний'}
-                        </button>
-                      </div>
-                    </div>
+                    <NumStrip
+                      from={1}
+                      to={31}
+                      value={domDay}
+                      active={!domLast}
+                      onPick={(n) => {
+                        setDomDay(n)
+                        setDomLast(false)
+                      }}
+                      lastLabel={freq === 'month' ? 'последнее' : 'последний'}
+                      lastActive={domLast}
+                      onLast={() => setDomLast(!domLast)}
+                    />
                   </div>
                 )}
 
@@ -255,14 +343,12 @@ export function RepeatSheet({ itemId, onClose }: { itemId: string; onClose: () =
                   <div className="field">
                     <label>Рабочий день по счёту</label>
                     <div className="repeat__inline">
-                      <input
-                        className="data repeat__num"
-                        type="number"
-                        min={1}
-                        max={260}
+                      <Stepper
                         value={wdN}
+                        min={1}
+                        max={freq === 'month' ? 23 : freq === 'quarter' ? 66 : 250}
                         disabled={wdLast}
-                        onChange={(e) => setWdN(Number(e.target.value) || 1)}
+                        onChange={setWdN}
                       />
                       <div className="choices">
                         <button
@@ -315,43 +401,39 @@ export function RepeatSheet({ itemId, onClose }: { itemId: string; onClose: () =
                 {(anchorType === 'fromStart' || anchorType === 'fromEnd') && (
                   <div className="field">
                     <label>
-                      {anchorType === 'fromStart' ? 'Через сколько дней от начала' : 'За сколько дней до конца'}
+                      {anchorType === 'fromStart'
+                        ? 'Через сколько дней от начала'
+                        : 'За сколько дней до конца'}
                     </label>
-                    <div className="repeat__inline">
-                      <input
-                        className="data repeat__num"
-                        type="number"
-                        min={1}
-                        max={366}
-                        value={offDays}
-                        onChange={(e) => setOffDays(Number(e.target.value) || 1)}
-                      />
-                      <Chips
-                        options={[
-                          { v: false, label: 'календарные' },
-                          { v: true, label: 'рабочие' },
-                        ]}
-                        value={offBusiness}
-                        onPick={setOffBusiness}
-                      />
-                    </div>
+                    <NumStrip from={1} to={15} value={offDays} active onPick={setOffDays} />
+                    <Chips
+                      options={[
+                        { v: false, label: 'календарные' },
+                        { v: true, label: 'рабочие' },
+                      ]}
+                      value={offBusiness}
+                      onPick={setOffBusiness}
+                    />
                   </div>
                 )}
               </>
             )}
 
-            <div className="field">
-              <label>Если дата попала на выходной</label>
-              <Chips
-                options={[
-                  { v: 'none' as const, label: 'не двигать' },
-                  { v: 'back' as const, label: 'назад' },
-                  { v: 'forward' as const, label: 'вперёд' },
-                ]}
-                value={shift}
-                onPick={setShift}
-              />
-            </div>
+            {/* Сдвиг — только когда дата реально может попасть на выходной */}
+            {shiftApplicable && (
+              <div className="field">
+                <label>Если дата попала на выходной</label>
+                <Chips
+                  options={[
+                    { v: 'none' as const, label: 'не двигать' },
+                    { v: 'back' as const, label: 'назад' },
+                    { v: 'forward' as const, label: 'вперёд' },
+                  ]}
+                  value={shift}
+                  onPick={setShift}
+                />
+              </div>
+            )}
 
             <div className="field">
               <label>Окончание</label>
@@ -373,20 +455,8 @@ export function RepeatSheet({ itemId, onClose }: { itemId: string; onClose: () =
                 />
               )}
               {endType === 'count' && (
-                <input
-                  className="data repeat__num"
-                  type="number"
-                  min={1}
-                  max={999}
-                  value={countTimes}
-                  onChange={(e) => setCountTimes(Number(e.target.value) || 1)}
-                />
+                <Stepper value={countTimes} min={1} max={999} onChange={setCountTimes} />
               )}
-            </div>
-
-            {/* Живой предпросмотр правила словами */}
-            <div className="repeat__preview data">
-              → {ruleLabel(preview, { formatDate: formatDateShort })}
             </div>
 
             <div className="sheet__row">
