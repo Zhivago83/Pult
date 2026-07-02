@@ -1,31 +1,24 @@
 import { useMemo, useState } from 'react'
 import { EngineProvider, useEngine } from './state/engine'
+import { useTheme } from './ui/useTheme'
 import { Summary } from './ui/Summary'
 import { Waiting } from './ui/Waiting'
-import { Projects } from './ui/Projects'
 import { Capture } from './ui/Capture'
 import { Detail } from './ui/Detail'
 import { PersonCard } from './ui/PersonCard'
-import { ProjectCard } from './ui/ProjectCard'
-import { Archive } from './ui/Archive'
 import { Trash } from './ui/Trash'
-import { Settings } from './ui/Settings'
-import { Search } from './ui/Search'
 import { UndoToast } from './ui/UndoToast'
 
-type Screen = 'summary' | 'waiting' | 'projects'
+type Screen = 'summary' | 'waiting'
 
 function Shell() {
   const { ready, trashed, items } = useEngine()
+  const { theme, toggle } = useTheme()
   const [screen, setScreen] = useState<Screen>('summary')
   const [showCapture, setShowCapture] = useState(false)
   const [showTrash, setShowTrash] = useState(false)
-  const [showArchive, setShowArchive] = useState(false)
-  const [showSettings, setShowSettings] = useState(false)
-  const [showSearch, setShowSearch] = useState(false)
   const [openId, setOpenId] = useState<string | null>(null)
   const [openPerson, setOpenPerson] = useState<string | null>(null)
-  const [openProject, setOpenProject] = useState<string | null>(null)
 
   const waitingCount = useMemo(
     () => items.filter((it) => it.kind === 'waiting' && it.status === 'open').length,
@@ -39,21 +32,11 @@ function Shell() {
       <header className="topbar">
         <div className="topbar__title">Пульт руководителя</div>
         <div className="topbar__actions">
-          <button className="linkbtn linkbtn--icon" aria-label="Поиск" onClick={() => setShowSearch(true)}>
-            ⌕
-          </button>
-          <button className="linkbtn" onClick={() => setShowArchive(true)}>
-            Архив
-          </button>
           <button className="linkbtn" onClick={() => setShowTrash(true)}>
             Корзина{trashed.length ? ` · ${trashed.length}` : ''}
           </button>
-          <button
-            className="linkbtn linkbtn--icon"
-            aria-label="Настройки"
-            onClick={() => setShowSettings(true)}
-          >
-            ⋯
+          <button className="linkbtn" onClick={toggle}>
+            {theme === 'paper' ? 'Консоль' : 'Бумага'}
           </button>
         </div>
       </header>
@@ -71,19 +54,13 @@ function Shell() {
         >
           Жду{waitingCount ? ` · ${waitingCount}` : ''}
         </button>
-        <button
-          className={`tab${screen === 'projects' ? ' is-active' : ''}`}
-          onClick={() => setScreen('projects')}
-        >
-          Проекты
-        </button>
       </nav>
 
-      {screen === 'summary' && <Summary onOpen={setOpenId} />}
-      {screen === 'waiting' && (
+      {screen === 'summary' ? (
+        <Summary onOpen={setOpenId} />
+      ) : (
         <Waiting onOpenItem={setOpenId} onOpenPerson={setOpenPerson} />
       )}
-      {screen === 'projects' && <Projects onOpenProject={setOpenProject} />}
 
       <button className="fab" aria-label="Добавить пункт" onClick={() => setShowCapture(true)}>
         +
@@ -97,18 +74,8 @@ function Shell() {
           onClose={() => setOpenPerson(null)}
         />
       )}
-      {openProject !== null && (
-        <ProjectCard
-          name={openProject}
-          onOpenItem={setOpenId}
-          onClose={() => setOpenProject(null)}
-        />
-      )}
-      {showArchive && <Archive onOpenItem={setOpenId} onClose={() => setShowArchive(false)} />}
       {openId && <Detail id={openId} onClose={() => setOpenId(null)} />}
       {showTrash && <Trash onClose={() => setShowTrash(false)} />}
-      {showSearch && <Search onOpenItem={setOpenId} onClose={() => setShowSearch(false)} />}
-      {showSettings && <Settings onClose={() => setShowSettings(false)} />}
 
       <UndoToast />
     </div>
