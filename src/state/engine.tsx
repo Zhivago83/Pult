@@ -220,7 +220,8 @@ export function EngineProvider({
     if (patch.title !== undefined) clean.title = patch.title.trim()
     if (patch.who !== undefined) clean.who = patch.who.trim() || undefined
     if (patch.project !== undefined) clean.project = patch.project.trim() || undefined
-    if (patch.dueAt !== undefined) clean.dueAt = patch.dueAt
+    // Для даты важно наличие ключа: `dueAt: undefined` означает «очистить срок».
+    if ('dueAt' in patch) clean.dueAt = patch.dueAt
     // Заголовок не может стать пустым.
     if (clean.title !== undefined && clean.title === '') delete clean.title
 

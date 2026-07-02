@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useEngine } from '../state/engine'
 import { buildTimeline } from '../core/timeline'
+import { projectNames } from '../core/projects'
 import { formatDateShort, formatDateTime, dateInputToTs, tsToDateInput } from '../core/time'
 import { SOON_MS } from '../core/constants'
 import { useNow } from './useNow'
@@ -18,6 +19,7 @@ export function Detail({ id, onClose }: { id: string; onClose: () => void }) {
   const now = useNow()
   const item = items.find((it) => it.id === id)
   const timeline = useMemo(() => (item ? buildTimeline(ops, item) : []), [ops, item])
+  const existingProjects = useMemo(() => projectNames(items), [items])
 
   const [editing, setEditing] = useState<Field | null>(null)
   const [draft, setDraft] = useState('')
@@ -121,6 +123,23 @@ export function Detail({ id, onClose }: { id: string; onClose: () => void }) {
         {editing && editing !== 'title' && (
           <div className="editor">
             <label className="editor__label">{fieldLabel[editing]}</label>
+            {/* Для проекта — сперва выбор из существующих */}
+            {editing === 'project' && existingProjects.length > 0 && (
+              <div className="choices">
+                {existingProjects.map((p) => (
+                  <button
+                    key={p}
+                    className={p === item.project ? 'is-active' : ''}
+                    onClick={() => {
+                      edit(id, { project: p })
+                      setEditing(null)
+                    }}
+                  >
+                    {p}
+                  </button>
+                ))}
+              </div>
+            )}
             {editing === 'due' ? (
               <input
                 className="editor__input data"
@@ -139,7 +158,7 @@ export function Detail({ id, onClose }: { id: string; onClose: () => void }) {
                   if (e.key === 'Enter') saveEdit()
                   if (e.key === 'Escape') setEditing(null)
                 }}
-                placeholder={editing === 'who' ? 'Имя' : 'Название проекта'}
+                placeholder={editing === 'who' ? 'Имя' : 'Название нового проекта'}
               />
             )}
             <div className="editor__actions">

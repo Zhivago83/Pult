@@ -1,18 +1,21 @@
 import { useMemo } from 'react'
 import { useEngine } from '../state/engine'
 import { buildSummary } from '../core/derive'
+import { activeProjects } from '../core/projects'
 import { Thermometer } from './Thermometer'
 import { ItemRow } from './ItemRow'
 import { useNow } from './useNow'
 
 /**
  * Экран «Сводка»: термометр дня + секции по тревожности.
+ * Внизу — тихая строка «В движении» с активными проектами.
  * Пустой экран — спокойный, без цвета.
  */
 export function Summary({ onOpen }: { onOpen: (id: string) => void }) {
   const { items, close, trash } = useEngine()
   const now = useNow()
   const summary = useMemo(() => buildSummary(items, now), [items, now])
+  const moving = useMemo(() => activeProjects(items), [items])
 
   const isEmpty = summary.sections.length === 0
 
@@ -43,6 +46,10 @@ export function Summary({ onOpen }: { onOpen: (id: string) => void }) {
             ))}
           </section>
         ))
+      )}
+
+      {!isEmpty && moving.length > 0 && (
+        <div className="projects-note data">В движении: {moving.join(' · ')}</div>
       )}
     </>
   )
