@@ -1006,3 +1006,63 @@ button.row {
   color: var(--ink);
   padding: 10px 0 16px;
 }
+
+/* Степпер «− N +»: числа меняются только тапами */
+.stepper {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border: 1px solid var(--hairline);
+  border-radius: 20px;
+  overflow: hidden;
+}
+.stepper button {
+  width: 40px;
+  padding: 8px 0;
+  font-size: 17px;
+  line-height: 1;
+  color: var(--muted);
+}
+.stepper button:active {
+  background: var(--accent-soft);
+}
+.stepper__val {
+  min-width: 40px;
+  text-align: center;
+  font-size: 15px;
+  color: var(--ink);
+}
+.stepper--off {
+  opacity: 0.4;
+}
+
+/* Горизонтальная карусель чисел */
+.numstrip {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  padding: 2px 0 8px;
+  margin-bottom: 8px;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+.numstrip::-webkit-scrollbar {
+  display: none;
+}
+.numstrip button {
+  flex: none;
+  min-width: 38px;
+  padding: 8px 6px;
+  border: 1px solid var(--hairline);
+  border-radius: 19px;
+  font-size: 13px;
+  color: var(--muted);
+}
+.numstrip button.is-active {
+  background: var(--ink);
+  color: var(--paper);
+  border-color: var(--ink);
+}
+.numstrip__last {
+  padding: 8px 14px !important;
+}
