@@ -7,6 +7,7 @@
 
 import type { Item, Op } from '../types'
 import { formatDateShort } from './time'
+import { ruleLabel } from './repeat'
 
 export interface TimelineEntry {
   id: string
@@ -29,6 +30,8 @@ function describeEdit(before: Item | null, after: Item | null): string {
   if (before.who !== after.who) parts.push(`владелец: ${after.who || '—'}`)
   if (before.project !== after.project) parts.push(`проект: ${after.project || '—'}`)
   if (before.dueAt !== after.dueAt) parts.push(`срок: ${dueLabel(after.dueAt)}`)
+  if (JSON.stringify(before.repeat ?? null) !== JSON.stringify(after.repeat ?? null))
+    parts.push(`повтор: ${after.repeat ? ruleLabel(after.repeat) : 'разовая'}`)
   return parts.length ? parts.join(' · ') : 'изменено'
 }
 

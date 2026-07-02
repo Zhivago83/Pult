@@ -10,6 +10,7 @@ import { PersonCard } from './ui/PersonCard'
 import { ProjectCard } from './ui/ProjectCard'
 import { Inbox } from './ui/Inbox'
 import { InboxCard } from './ui/InboxCard'
+import { CalendarSheet } from './ui/CalendarSheet'
 import { Trash } from './ui/Trash'
 import { UndoToast } from './ui/UndoToast'
 
@@ -25,6 +26,7 @@ function Shell() {
   const [openPerson, setOpenPerson] = useState<string | null>(null)
   const [openProject, setOpenProject] = useState<string | null>(null)
   const [showInbox, setShowInbox] = useState(false)
+  const [showCalendar, setShowCalendar] = useState(false)
   const [openRecord, setOpenRecord] = useState<string | null>(null)
 
   const waitingCount = useMemo(
@@ -39,6 +41,9 @@ function Shell() {
       <header className="topbar">
         <div className="topbar__title">Пульт руководителя</div>
         <div className="topbar__actions">
+          <button className="linkbtn" onClick={() => setShowCalendar(true)}>
+            Календарь
+          </button>
           <button className="linkbtn" onClick={() => setShowTrash(true)}>
             Корзина{trashed.length ? ` · ${trashed.length}` : ''}
           </button>
@@ -96,6 +101,7 @@ function Shell() {
       {openRecord && <InboxCard id={openRecord} onClose={() => setOpenRecord(null)} />}
       {openId && <Detail id={openId} onClose={() => setOpenId(null)} />}
       {showTrash && <Trash onClose={() => setShowTrash(false)} />}
+      {showCalendar && <CalendarSheet onClose={() => setShowCalendar(false)} />}
 
       <UndoToast />
     </div>

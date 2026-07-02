@@ -16,10 +16,12 @@ import {
   useState,
   type ReactNode,
 } from 'react'
-import type { Doc, Item, Op, OpType, Person, Role } from '../types'
+import type { CalEntry, Doc, Item, Op, OpType, Person, Role } from '../types'
 import { idbStore, type Store } from '../store/store'
 import { newId } from '../core/id'
 import { docLabel } from '../core/docs'
+import { makeIsWorkday } from '../core/calendar'
+import { nextOccurrence } from '../core/repeat'
 import { GRACE_MS } from '../core/constants'
 import { seedItems, seedPeople, seedDocs } from '../core/seed'
 
@@ -27,7 +29,9 @@ import { seedItems, seedPeople, seedDocs } from '../core/seed'
 const TOAST_MS = 7000
 
 /** Что можно поправить в карточке пункта / при разборе Входящих. */
-export type EditPatch = Partial<Pick<Item, 'title' | 'who' | 'project' | 'dueAt' | 'kind'>>
+export type EditPatch = Partial<
+  Pick<Item, 'title' | 'who' | 'project' | 'dueAt' | 'kind' | 'repeat'>
+>
 
 /** Плашка Undo: что именно предлагаем отменить. */
 export interface Pending {
@@ -43,6 +47,14 @@ export interface Engine {
   inbox: Item[]
   /** Все документы (карточки с полями). */
   docs: Doc[]
+  /** Отметки производственного календаря (свои нерабочие/рабочие дни). */
+  calendar: CalEntry[]
+  /** Рабочий ли день (с учётом выходных, праздников РФ и отметок). */
+  isWorkday(ts: number): boolean
+  /** Отметить день: нерабочий ('off') или рабочий-перенос ('work'). */
+  addCalEntry(date: string, kind: 'off' | 'work'): void
+  /** Снять отметку с дня. */
+  removeCalEntry(date: string): void
   /** Весь журнал операций (для истории пункта). */
   ops: Op[]
   /** Люди с ролями (команда/исполнитель). */
@@ -92,6 +104,8 @@ const OP_LABELS: Record<OpType, string> = {
   setRole: 'Роль изменена',
   attachDoc: 'Документ привязан',
   detachDoc: 'Документ отвязан',
+  calAdd: 'День в календаре отмечен',
+  calRemove: 'Отметка календаря снята',
 }
 
 /** Поля нового документа (ввод из формы «Привязать документ»). */
@@ -118,6 +132,7 @@ export function EngineProvider({
   const [ops, setOps] = useState<Op[]>([])
   const [people, setPeople] = useState<Person[]>([])
   const [docs, setDocs] = useState<Doc[]>([])
+  const [calendar, setCalendar] = useState<CalEntry[]>([])
   const [pending, setPending] = useState<Pending | null>(null)
   const toastTimer = useRef<number | null>(null)
 
@@ -160,12 +175,14 @@ export function EngineProvider({
           loaded = loaded.map((it) => (it.id === 'seed-6' ? linked : it))
         }
       }
+      const loadedCal = await store.allCal()
       const loadedOps = await store.allOps()
       if (!alive) return
       setItems(loaded)
       setOps(loadedOps)
       setPeople(loadedPeople)
       setDocs(loadedDocs)
+      setCalendar(loadedCal)
       setReady(true)
     })()
     return () => {
@@ -235,10 +252,41 @@ export function EngineProvider({
       ...before,
       status: 'done',
       closedAt: t,
-      graceUntil: t + GRACE_MS, // period благодати: 6 секунд зачёркнут
+      graceUntil: t + GRACE_MS, // период благодати: 6 секунд зачёркнут
       updatedAt: t,
     }
-    void commit('close', before, after)
+    // Повторяющийся пункт: сразу заводим следующий период по правилу.
+    let spawned: Item | undefined
+    if (before.repeat) {
+      const res = nextOccurrence(before.repeat, before.dueAt ?? t, isWorkday)
+      if (res) {
+        spawned = {
+          ...before,
+          id: newId(),
+          dueAt: res.date,
+          repeat: res.rule,
+          status: 'open',
+          closedAt: undefined,
+          graceUntil: undefined,
+          docIds: undefined, // документы остаются у закрытого периода
+          createdAt: t,
+          updatedAt: t,
+        }
+      }
+    }
+    const op: Op = { id: newId(), ts: t, type: 'close', itemId: id, before, after, spawned }
+    ;(async () => {
+      await store.putItem(after)
+      if (spawned) await store.putItem(spawned)
+      await store.putOp(op)
+      setItems((prev) => {
+        const updated = prev.map((it) => (it.id === id ? after : it))
+        return spawned ? [...updated, spawned] : updated
+      })
+      setOps((prev) => [...prev, op])
+      setPending({ op, label: OP_LABELS.close })
+      scheduleToastHide()
+    })()
   }
 
   function trash(id: string) {
@@ -279,8 +327,9 @@ export function EngineProvider({
     if (patch.who !== undefined) clean.who = patch.who.trim() || undefined
     if (patch.project !== undefined) clean.project = patch.project.trim() || undefined
     if (patch.kind !== undefined) clean.kind = patch.kind
-    // Для даты важно наличие ключа: `dueAt: undefined` означает «очистить срок».
+    // Для даты и повтора важно наличие ключа: undefined означает «очистить».
     if ('dueAt' in patch) clean.dueAt = patch.dueAt
+    if ('repeat' in patch) clean.repeat = patch.repeat
     // Заголовок не может стать пустым.
     if (clean.title !== undefined && clean.title === '') delete clean.title
 
@@ -291,7 +340,8 @@ export function EngineProvider({
       after.kind === before.kind &&
       after.who === before.who &&
       after.project === before.project &&
-      after.dueAt === before.dueAt
+      after.dueAt === before.dueAt &&
+      JSON.stringify(after.repeat ?? null) === JSON.stringify(before.repeat ?? null)
     ) {
       return
     }
@@ -387,6 +437,56 @@ export function EngineProvider({
     void commit('create', null, item)
   }
 
+  /** Отметить день календаря (нерабочий/рабочий-перенос). С Undo. */
+  function addCalEntry(date: string, kind: 'off' | 'work') {
+    if (!date) return
+    const before = calendar.find((e) => e.date === date) ?? null
+    if (before && before.kind === kind) return
+    const after: CalEntry = { date, kind }
+    const op: Op = {
+      id: newId(),
+      ts: now(),
+      type: 'calAdd',
+      itemId: date,
+      before: null,
+      after: null,
+      calBefore: before,
+      calAfter: after,
+    }
+    ;(async () => {
+      await store.putCal(after)
+      await store.putOp(op)
+      setCalendar((prev) => [...prev.filter((e) => e.date !== date), after])
+      setOps((prev) => [...prev, op])
+      setPending({ op, label: OP_LABELS.calAdd })
+      scheduleToastHide()
+    })()
+  }
+
+  /** Снять отметку календаря. С Undo. */
+  function removeCalEntry(date: string) {
+    const before = calendar.find((e) => e.date === date)
+    if (!before) return
+    const op: Op = {
+      id: newId(),
+      ts: now(),
+      type: 'calRemove',
+      itemId: date,
+      before: null,
+      after: null,
+      calBefore: before,
+      calAfter: null,
+    }
+    ;(async () => {
+      await store.removeCal(date)
+      await store.putOp(op)
+      setCalendar((prev) => prev.filter((e) => e.date !== date))
+      setOps((prev) => [...prev, op])
+      setPending({ op, label: OP_LABELS.calRemove })
+      scheduleToastHide()
+    })()
+  }
+
   /** Добавить комментарий в историю пункта (пункт не меняется). */
   function addComment(id: string, text: string) {
     const item = items.find((it) => it.id === id)
@@ -441,7 +541,17 @@ export function EngineProvider({
     const op = pending.op
     const undoneOp: Op = { ...op, undone: true }
     ;(async () => {
-      if (op.type === 'setRole') {
+      if (op.type === 'calAdd' || op.type === 'calRemove') {
+        // Операция про календарь — возвращаем прежнюю отметку.
+        if (op.calBefore) {
+          await store.putCal(op.calBefore)
+          const back = op.calBefore
+          setCalendar((prev) => [...prev.filter((e) => e.date !== back.date), back])
+        } else {
+          await store.removeCal(op.itemId)
+          setCalendar((prev) => prev.filter((e) => e.date !== op.itemId))
+        }
+      } else if (op.type === 'setRole') {
         // Операция про человека — откатываем роль.
         if (op.personBefore) await store.putPerson(op.personBefore)
         else await store.removePerson(op.itemId)
@@ -453,6 +563,12 @@ export function EngineProvider({
         if (before) await store.putItem(before)
         else await store.removeItem(id)
         applySnapshot(id, before)
+        // Закрытие повторяющегося создало следующий период — убираем его.
+        if (op.spawned) {
+          const spawnedId = op.spawned.id
+          await store.removeItem(spawnedId)
+          setItems((prev) => prev.filter((it) => it.id !== spawnedId))
+        }
         // Привязка создала документ — убираем и его.
         if (op.type === 'attachDoc' && op.docAfter) {
           const docId = op.docAfter.id
@@ -472,6 +588,7 @@ export function EngineProvider({
     if (toastTimer.current != null) window.clearTimeout(toastTimer.current)
   }
 
+  const isWorkday = useMemo(() => makeIsWorkday(calendar), [calendar])
   const trashed = useMemo(() => items.filter((it) => it.status === 'trashed'), [items])
   const active = useMemo(() => items.filter((it) => it.status !== 'trashed'), [items])
   const inbox = useMemo(
@@ -488,6 +605,10 @@ export function EngineProvider({
     trashed,
     inbox,
     docs,
+    calendar,
+    isWorkday,
+    addCalEntry,
+    removeCalEntry,
     ops,
     people,
     pending,
