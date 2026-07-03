@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
 import { EngineProvider, useEngine } from './state/engine'
+import { AuthProvider } from './state/auth'
 import { useTheme } from './ui/useTheme'
 import { Summary } from './ui/Summary'
 import { Waiting } from './ui/Waiting'
@@ -12,6 +13,7 @@ import { Inbox } from './ui/Inbox'
 import { InboxCard } from './ui/InboxCard'
 import { CalendarSheet } from './ui/CalendarSheet'
 import { Trash } from './ui/Trash'
+import { Settings } from './ui/Settings'
 import { UndoToast } from './ui/UndoToast'
 
 type Screen = 'summary' | 'waiting' | 'projects'
@@ -22,6 +24,7 @@ function Shell() {
   const [screen, setScreen] = useState<Screen>('summary')
   const [showCapture, setShowCapture] = useState(false)
   const [showTrash, setShowTrash] = useState(false)
+  const [showSettings, setShowSettings] = useState(false)
   const [openId, setOpenId] = useState<string | null>(null)
   const [openPerson, setOpenPerson] = useState<string | null>(null)
   const [openProject, setOpenProject] = useState<string | null>(null)
@@ -46,6 +49,9 @@ function Shell() {
           </button>
           <button className="linkbtn" onClick={() => setShowTrash(true)}>
             Корзина{trashed.length ? ` · ${trashed.length}` : ''}
+          </button>
+          <button className="linkbtn" onClick={() => setShowSettings(true)}>
+            Настройки
           </button>
           <button className="linkbtn" onClick={toggle}>
             {theme === 'paper' ? 'Консоль' : 'Бумага'}
@@ -101,6 +107,7 @@ function Shell() {
       {openRecord && <InboxCard id={openRecord} onClose={() => setOpenRecord(null)} />}
       {openId && <Detail id={openId} onClose={() => setOpenId(null)} />}
       {showTrash && <Trash onClose={() => setShowTrash(false)} />}
+      {showSettings && <Settings onClose={() => setShowSettings(false)} />}
       {showCalendar && <CalendarSheet onClose={() => setShowCalendar(false)} />}
 
       <UndoToast />
@@ -110,8 +117,10 @@ function Shell() {
 
 export default function App() {
   return (
-    <EngineProvider>
-      <Shell />
-    </EngineProvider>
+    <AuthProvider>
+      <EngineProvider>
+        <Shell />
+      </EngineProvider>
+    </AuthProvider>
   )
 }
