@@ -10,8 +10,8 @@ import { createClient } from '@supabase/supabase-js'
 // Оба значения берутся из панели проекта Supabase → Project Settings → API.
 // Публикуемый ключ безопасно держать в клиентском коде.
 // TODO: подставить реальные значения из своего проекта Supabase.
-const SUPABASE_URL = 'PASTE_PROJECT_URL'
-const SUPABASE_PUBLISHABLE_KEY = 'PASTE_PUBLISHABLE_KEY'
+const SUPABASE_URL = 'https://fwehqhprnbyrvksgbuml.supabase.co'
+const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_tcEJWKA46Go-UUCDGNGchg_fTeMzYRk'
 
 export const supabase = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
   auth: {
